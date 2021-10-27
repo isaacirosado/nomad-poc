@@ -1,3 +1,4 @@
+#All the basic stuff to initialize
 terraform {
   required_providers {
     digitalocean = {
@@ -7,12 +8,13 @@ terraform {
   }
 }
 
-provider "digitalocean" {
-}
+#DO!
+provider "digitalocean" {}
 
-resource "digitalocean_droplet" "test" {
+#Create nodes with our default SSH keys
+resource "digitalocean_droplet" "cluster" {
   image = "ubuntu-20-04-x64"
-  name = "test"
+  name = "node"
   region = "lon1"
   ssh_keys = [
     32194238, #james2
@@ -24,4 +26,18 @@ resource "digitalocean_droplet" "test" {
   size = "s-1vcpu-1gb"
   droplet_agent = true
   graceful_shutdown = true
+}
+
+#Bootstrap the node (TODO: Convert to a base image to speed up installations and enable authoritative testing)
+resource "null_resource" "node-setup" {
+  triggers = {
+    checksum = sha1(file("node-setup.sh"))
+  }
+  provisioner "remote-exec" {
+    connection {
+      host = digitalocean_droplet.cluster.ipv4_address
+      private_key = file("/root/.ssh/id_rsa")
+    }
+    script = "node-setup.sh"
+  }
 }
