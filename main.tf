@@ -11,10 +11,15 @@ terraform {
 #DO!
 provider "digitalocean" {}
 
+variable "nodecount" {
+  default = 5
+}
+
 #Create nodes with our default SSH keys
 resource "digitalocean_droplet" "cluster" {
+  count = var.nodecount
   image = "ubuntu-20-04-x64"
-  name = "node"
+  name = "node${count.index}"
   tags = ["cluster"]
   region = "lon1"
   ssh_keys = [
@@ -31,12 +36,13 @@ resource "digitalocean_droplet" "cluster" {
 
 #Bootstrap the node (TODO: Convert to a base image to speed up installations and enable authoritative testing)
 resource "null_resource" "node-setup" {
+  count = var.nodecount
   triggers = {
     checksum = sha1(file("node-setup.sh"))
   }
   provisioner "remote-exec" {
     connection {
-      host = digitalocean_droplet.cluster.ipv4_address
+      host = digitalocean_droplet.cluster[count.index].ipv4_address
       private_key = file("/root/.ssh/id_rsa")
     }
     script = "node-setup.sh"

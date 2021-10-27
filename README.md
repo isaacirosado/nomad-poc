@@ -21,6 +21,10 @@ We are provisioning/configuring most everything with Hashicorp's Terraform:
   ```
 
 - Install "PDSH" so you can run commands on multiple hosts at the same time
+  ```
+  apt-get install -y pdsh
+  export PDSH_SSH_ARGS_APPEND="-i /root/.ssh/id_rsa -oStrictHostKeyChecking=accept-new"
+  ```
   - e.g. to start a shell connected to all the droplets tagged as "cluster": ```
   pdsh -R ssh -l root -w `doctl compute droplet list --format PublicIPv4 --no-header --tag-name cluster | paste -s -d','`
   ```
