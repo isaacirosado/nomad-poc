@@ -19,3 +19,8 @@ We are provisioning/configuring most everything with Hashicorp's Terraform:
   apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
   apt-get update && apt-get install terraform
   ```
+
+- Install "PDSH" so you can run commands on multiple hosts at the same time
+  - e.g. to start a shell connected to all the droplets tagged as "cluster": ```
+  pdsh -R ssh -l root -w `doctl compute droplet list --format PublicIPv4 --no-header --tag-name cluster | paste -s -d','`
+  ```

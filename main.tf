@@ -15,6 +15,7 @@ provider "digitalocean" {}
 resource "digitalocean_droplet" "cluster" {
   image = "ubuntu-20-04-x64"
   name = "node"
+  tags = ["cluster"]
   region = "lon1"
   ssh_keys = [
     32194238, #james2
