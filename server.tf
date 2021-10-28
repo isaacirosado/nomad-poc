@@ -66,3 +66,18 @@ resource "null_resource" "config-server" {
     destination = "/etc/nomad.d/server.hcl"
   }
 }
+
+resource "null_resource" "server-enable-service" {
+  depends_on = [null_resource.config-server]
+  count = var.servercount
+  triggers = {
+    common = sha1(file("service.sh"))
+  }
+  provisioner "remote-exec" {
+    connection {
+      host = digitalocean_droplet.server[count.index].ipv4_address
+      private_key = file("/root/.ssh/id_rsa")
+    }
+    script = "service.sh"
+  }
+}

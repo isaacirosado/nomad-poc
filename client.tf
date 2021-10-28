@@ -11,7 +11,7 @@ resource "digitalocean_droplet" "client" {
     32193692, #isaac's personal
     32194409 #isaac's controller
   ]
-  size = "s-1vcpu-1gb"
+  size = "s-2vcpu-4gb"
   droplet_agent = true
   #graceful_shutdown = true
 }
@@ -64,5 +64,20 @@ resource "null_resource" "config-client" {
       servers = jsonencode(digitalocean_droplet.server.*.ipv4_address_private)
     })
     destination = "/etc/nomad.d/client.hcl"
+  }
+}
+
+resource "null_resource" "client-enable-service" {
+  depends_on = [null_resource.config-client]
+  count = var.clientcount
+  triggers = {
+    common = sha1(file("service.sh"))
+  }
+  provisioner "remote-exec" {
+    connection {
+      host = digitalocean_droplet.client[count.index].ipv4_address
+      private_key = file("/root/.ssh/id_rsa")
+    }
+    script = "service.sh"
   }
 }
