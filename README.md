@@ -25,6 +25,11 @@ We are provisioning/configuring most everything with Hashicorp's Terraform:
   apt-get install -y pdsh
   export PDSH_SSH_ARGS_APPEND="-i /root/.ssh/id_rsa -oStrictHostKeyChecking=accept-new"
   ```
-  - e.g. to start a shell connected to all the droplets tagged as "cluster": ```
-  pdsh -R ssh -l root -w `doctl compute droplet list --format PublicIPv4 --no-header --tag-name cluster | paste -s -d','`
+  - e.g. to start a shell connected to all the droplets tagged as "server":
   ```
+  pdsh -R ssh -l root -w `doctl compute droplet list --format PublicIPv4 --no-header --tag-name server | paste -s -d','`
+  ```
+  - or to list the status of nomad on every node:
+  ```
+  pdsh -R ssh -l root -w `doctl compute droplet list --format PublicIPv4 --no-header --tag-name cluster | paste -s -d','` bash --login -c \"nomad node status\"
+  ``

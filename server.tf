@@ -29,30 +29,12 @@ resource "null_resource" "server-common" {
     script = "common.sh"
   }
 }
-resource "null_resource" "config-server-common" {
+resource "null_resource" "config-server" {
   depends_on = [null_resource.server-common]
   count = var.servercount
   triggers = {
-    common = sha1(file("common.sh"))
-    file = sha1(file("nomad.hcl"))
-  }
-  provisioner "file" {
-    connection {
-      host = digitalocean_droplet.server[count.index].ipv4_address
-      private_key = file("/root/.ssh/id_rsa")
-    }
-    content = templatefile("nomad.hcl", {
-      dc = digitalocean_droplet.server[count.index].region
-      addr = digitalocean_droplet.server[count.index].ipv4_address_private
-    })
-    destination = "/etc/nomad.d/nomad.hcl"
-  }
-}
-resource "null_resource" "config-server" {
-  depends_on = [null_resource.config-server-common]
-  count = var.servercount
-  triggers = {
     file = sha1(file("server.hcl"))
+    file2 = sha1(file("profile-d.sh"))
   }
   provisioner "file" {
     connection {
@@ -60,10 +42,23 @@ resource "null_resource" "config-server" {
       private_key = file("/root/.ssh/id_rsa")
     }
     content = templatefile("server.hcl", {
+      dc = digitalocean_droplet.server[count.index].region
+      addr = digitalocean_droplet.server[count.index].ipv4_address_private
       count = var.servercount,
       servers = jsonencode(digitalocean_droplet.server.*.ipv4_address_private)
     })
-    destination = "/etc/nomad.d/server.hcl"
+    destination = "/etc/nomad.d/nomad.hcl"
+  }
+  provisioner "file" {
+    connection {
+      host = digitalocean_droplet.server[count.index].ipv4_address
+      private_key = file("/root/.ssh/id_rsa")
+    }
+    content = templatefile("profile-d.sh", {
+      addr = digitalocean_droplet.server[count.index].ipv4_address_private
+      dc = digitalocean_droplet.server[count.index].region
+    })
+    destination = "/etc/profile.d/nomad.sh"
   }
 }
 
