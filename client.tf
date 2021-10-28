@@ -35,6 +35,7 @@ resource "null_resource" "config-client" {
   triggers = {
     file = sha1(file("client.hcl"))
     file2 = sha1(file("profile-d.sh"))
+    file3 = sha1(filebase64("/root/bin/nomad-driver-lxc"))
   }
   provisioner "file" {
     connection {
@@ -59,6 +60,14 @@ resource "null_resource" "config-client" {
       dc = digitalocean_droplet.client[count.index].region
     })
     destination = "/etc/profile.d/nomad.sh"
+  }
+  provisioner "file" {
+    connection {
+      host = digitalocean_droplet.client[count.index].ipv4_address
+      private_key = file("/root/.ssh/id_rsa")
+    }
+    source = "/root/bin/nomad-driver-lxc"
+    destination = "/opt/nomad/plugins/nomad-driver-lxc"
   }
 }
 

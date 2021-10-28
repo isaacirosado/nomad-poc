@@ -32,4 +32,18 @@ We are provisioning/configuring most everything with Hashicorp's Terraform:
   - or to list the status of nomad on every node:
   ```
   pdsh -R ssh -l root -w `doctl compute droplet list --format PublicIPv4 --no-header --tag-name cluster | paste -s -d','` bash --login -c \"nomad node status\"
-  ``
+  ```
+
+- Compile the LXC driver for Nomad (because of this bug: https://github.com/hashicorp/nomad-driver-lxc/issues/16 that renders it incompatible with LXC v4)
+  ```
+  wget -c https://golang.org/dl/go1.17.2.linux-amd64.tar.gz
+  tar -zxf go1.17.2.linux-amd64.tar.gz 
+  mv go /usr/local/
+  go version
+  apt-get install -y tree make nomad=1.1.6 pkg-config lxc-dev gcc
+  export GOPATH=/root
+  mkdir -p $GOPATH/src/github.com/hashicorp; cd $GOPATH/src/github.com/hashicorp
+  git clone https://github.com/hashicorp/nomad-driver-lxc.git
+  cd $GOPATH/src/github.com/hashicorp/nomad-driver-lxc
+  make build
+  ```
