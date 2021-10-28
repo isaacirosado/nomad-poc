@@ -1,4 +1,5 @@
 log_level = "DEBUG"
+enable_syslog = true
 data_dir = "/opt/nomad"
 datacenter = "${dc}"
 region = "${dc}"
