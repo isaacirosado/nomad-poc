@@ -47,3 +47,11 @@ We are provisioning/configuring most everything with Hashicorp's Terraform:
   cd $GOPATH/src/github.com/hashicorp/nomad-driver-lxc
   make build
   ```
+- Compile the containerd driver
+  ```
+  mkdir -p $GOPATH/src/github.com/Roblox
+  cd $GOPATH/src/github.com/Roblox
+  git clone https://github.com/Roblox/nomad-driver-containerd.git
+  cd nomad-driver-containerd
+  make build
+  ```

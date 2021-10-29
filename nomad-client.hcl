@@ -6,7 +6,18 @@ region = "${dc}"
 bind_addr = "${addr}"
 client {
   enabled = true
+  host_network "private" {
+   cidr = "10.106.0.0/20"
+   reserved_ports = "22,80"
+  }
 }
 consul {
-  address = "${addr}:8500"
+  address = "127.0.0.1:8500"
+}
+plugin "containerd-driver" {
+  config {
+    enabled = true
+    containerd_runtime = "io.containerd.runc.v2"
+    stats_interval = "5s"
+  }
 }

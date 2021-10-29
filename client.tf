@@ -74,7 +74,6 @@ resource "null_resource" "nomad-client" {
   triggers = {
     id = digitalocean_droplet.client[count.index].id
     file = sha1(file("nomad-client.hcl"))
-    plugin = sha1(filebase64("/root/bin/nomad-driver-lxc"))
   }
   provisioner "file" {
     connection {
@@ -88,6 +87,23 @@ resource "null_resource" "nomad-client" {
     })
     destination = "/etc/nomad.d/nomad.hcl"
   }
+}
+resource "null_resource" "nomad-client-plugins" {
+  depends_on = [null_resource.nomad-client]
+  count = var.clientcount
+  triggers = {
+    id = digitalocean_droplet.client[count.index].id
+    lxc = sha1(filebase64("/root/bin/nomad-driver-lxc"))
+    containerd = sha1(filebase64("/root/bin/containerd-driver"))
+  }
+  provisioner "file" {
+    connection {
+      host = digitalocean_droplet.client[count.index].ipv4_address
+      private_key = file("/root/.ssh/id_rsa")
+    }
+    source = "/root/bin/containerd-driver"
+    destination = "/opt/nomad/plugins/containerd-driver"
+  }
   provisioner "file" {
     connection {
       host = digitalocean_droplet.client[count.index].ipv4_address
@@ -99,6 +115,7 @@ resource "null_resource" "nomad-client" {
 }
 
 resource "null_resource" "client-services" {
+  depends_on = [null_resource.nomad-client-plugins]
   count = var.clientcount
   triggers = {
     id = digitalocean_droplet.client[count.index].id
