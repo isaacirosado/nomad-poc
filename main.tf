@@ -9,7 +9,10 @@ terraform {
 }
 
 #DO!
-provider "digitalocean" {}
+variable "do_token" {}
+provider "digitalocean" {
+  token = var.do_token
+}
 
 variable "servercount" {
   default = 3 

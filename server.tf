@@ -5,49 +5,30 @@ resource "digitalocean_droplet" "server" {
   tags = ["cluster","server"]
   region = "lon1"
   ssh_keys = [
-    32194238, #james2
-    32194228, #james1
-    32194225, #matt
-    32193692, #isaac's personal
-    32194409 #isaac's controller
+    32194409 #controller
   ]
   size = "s-1vcpu-1gb"
   droplet_agent = true
-  #graceful_shutdown = true
 }
 
-resource "null_resource" "server-common" {
+resource "null_resource" "server-install" {
   count = var.servercount
   triggers = {
-    common = sha1(file("common.sh"))
+    install = sha1(file("install.sh"))
   }
   provisioner "remote-exec" {
     connection {
       host = digitalocean_droplet.server[count.index].ipv4_address
       private_key = file("/root/.ssh/id_rsa")
     }
-    script = "common.sh"
+    script = "install.sh"
   }
 }
-resource "null_resource" "config-server" {
-  depends_on = [null_resource.server-common]
+
+resource "null_resource" "profile-server" {
   count = var.servercount
   triggers = {
-    file = sha1(file("server.hcl"))
-    file2 = sha1(file("profile-d.sh"))
-  }
-  provisioner "file" {
-    connection {
-      host = digitalocean_droplet.server[count.index].ipv4_address
-      private_key = file("/root/.ssh/id_rsa")
-    }
-    content = templatefile("server.hcl", {
-      dc = digitalocean_droplet.server[count.index].region
-      addr = digitalocean_droplet.server[count.index].ipv4_address_private
-      count = var.servercount,
-      servers = jsonencode(digitalocean_droplet.server.*.ipv4_address_private)
-    })
-    destination = "/etc/nomad.d/nomad.hcl"
+    file = sha1(file("profile-d.sh"))
   }
   provisioner "file" {
     connection {
@@ -58,21 +39,49 @@ resource "null_resource" "config-server" {
       addr = digitalocean_droplet.server[count.index].ipv4_address_private
       dc = digitalocean_droplet.server[count.index].region
     })
-    destination = "/etc/profile.d/nomad.sh"
+    destination = "/etc/profile.d/poc.sh"
   }
 }
 
-resource "null_resource" "server-enable-service" {
-  depends_on = [null_resource.config-server]
+#Consul
+resource "null_resource" "consul-server" {
+  depends_on = [null_resource.server-install]
   count = var.servercount
   triggers = {
-    common = sha1(file("service.sh"))
+    file = sha1(file("consul-server.hcl"))
   }
-  provisioner "remote-exec" {
+  provisioner "file" {
     connection {
       host = digitalocean_droplet.server[count.index].ipv4_address
       private_key = file("/root/.ssh/id_rsa")
     }
-    script = "service.sh"
+    content = templatefile("consul-server.hcl", {
+      dc = digitalocean_droplet.server[count.index].region
+      addr = digitalocean_droplet.server[count.index].ipv4_address_private
+      count = var.servercount
+      token = var.do_token
+    })
+    destination = "/etc/consul.d/consul.hcl"
+  }
+}
+
+#Nomad
+resource "null_resource" "nomad-server" {
+  depends_on = [null_resource.server-install]
+  count = var.servercount
+  triggers = {
+    file = sha1(file("nomad-server.hcl"))
+  }
+  provisioner "file" {
+    connection {
+      host = digitalocean_droplet.server[count.index].ipv4_address
+      private_key = file("/root/.ssh/id_rsa")
+    }
+    content = templatefile("nomad-server.hcl", {
+      dc = digitalocean_droplet.server[count.index].region
+      addr = digitalocean_droplet.server[count.index].ipv4_address_private
+      count = var.servercount
+    })
+    destination = "/etc/nomad.d/nomad.hcl"
   }
 }

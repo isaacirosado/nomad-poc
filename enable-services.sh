@@ -1,5 +1,4 @@
 #!/bin/bash
-
 set -e
 
 if [[ -s "/opt/nomad/plugins/nomad-driver-lxc" ]]; then
@@ -7,3 +6,9 @@ if [[ -s "/opt/nomad/plugins/nomad-driver-lxc" ]]; then
 fi
 systemctl enable nomad
 systemctl start nomad
+systemctl restart nomad
+
+systemctl enable consul 
+systemctl start consul
+systemctl restart consul
+

@@ -4,10 +4,9 @@ data_dir = "/opt/nomad"
 datacenter = "${dc}"
 region = "${dc}"
 bind_addr = "${addr}"
-server {
+client {
   enabled = true
-  bootstrap_expect = ${count}
-  server_join {
-    retry_join = ${servers}
-  }
+}
+consul {
+  address = "${addr}:8500"
 }
