@@ -3,7 +3,7 @@ resource "digitalocean_droplet" "client" {
   image = "ubuntu-20-04-x64"
   name = "client${count.index}"
   tags = ["cluster","client"]
-  region = "lon1"
+  region = var.region
   ssh_keys = [
     32194409 #controller
   ]
@@ -14,6 +14,7 @@ resource "digitalocean_droplet" "client" {
 resource "null_resource" "client-install" {
   count = var.clientcount
   triggers = {
+    id = digitalocean_droplet.client[count.index].id
     install = sha1(file("install.sh"))
   }
   provisioner "remote-exec" {
@@ -28,6 +29,7 @@ resource "null_resource" "client-install" {
 resource "null_resource" "profile-client" {
   count = var.clientcount
   triggers = {
+    id = digitalocean_droplet.client[count.index].id
     file = sha1(file("profile-d.sh"))
   }
   provisioner "file" {
@@ -48,6 +50,7 @@ resource "null_resource" "consul-client" {
   depends_on = [null_resource.client-install]
   count = var.clientcount
   triggers = {
+    id = digitalocean_droplet.client[count.index].id
     file = sha1(file("consul-client.hcl"))
   }
   provisioner "file" {
@@ -69,6 +72,7 @@ resource "null_resource" "nomad-client" {
   depends_on = [null_resource.client-install]
   count = var.clientcount
   triggers = {
+    id = digitalocean_droplet.client[count.index].id
     file = sha1(file("nomad-client.hcl"))
     plugin = sha1(filebase64("/root/bin/nomad-driver-lxc"))
   }
@@ -97,6 +101,7 @@ resource "null_resource" "nomad-client" {
 resource "null_resource" "client-services" {
   count = var.clientcount
   triggers = {
+    id = digitalocean_droplet.client[count.index].id
     install = sha1(file("enable-services.sh"))
   }
   provisioner "remote-exec" {

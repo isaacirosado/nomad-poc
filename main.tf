@@ -10,6 +10,9 @@ terraform {
 
 #DO!
 variable "do_token" {}
+variable "region" {
+  default = "lon1"
+}
 provider "digitalocean" {
   token = var.do_token
 }

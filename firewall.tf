@@ -4,17 +4,17 @@ resource "digitalocean_firewall" "default" {
   inbound_rule {
     protocol = "tcp"
     port_range = "22"
-    source_droplet_ids = ["271079468"] #controller
+    source_tags = ["controller"]
   }
   inbound_rule {
     protocol = "tcp"
     port_range = "all"
-    source_droplet_ids = concat(digitalocean_droplet.server.*.id, digitalocean_droplet.client.*.id)
+    source_tags = ["cluster"]
   }
   inbound_rule {
     protocol = "udp"
     port_range = "all"
-    source_droplet_ids = concat(digitalocean_droplet.server.*.id, digitalocean_droplet.client.*.id)
+    source_tags = ["cluster"]
   }
   outbound_rule {
     protocol = "tcp"

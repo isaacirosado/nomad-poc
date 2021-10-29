@@ -3,7 +3,7 @@ resource "digitalocean_droplet" "server" {
   image = "ubuntu-20-04-x64"
   name = "server${count.index}"
   tags = ["cluster","server"]
-  region = "lon1"
+  region = var.region
   ssh_keys = [
     32194409 #controller
   ]
@@ -14,6 +14,7 @@ resource "digitalocean_droplet" "server" {
 resource "null_resource" "server-install" {
   count = var.servercount
   triggers = {
+    id = digitalocean_droplet.server[count.index].id
     install = sha1(file("install.sh"))
   }
   provisioner "remote-exec" {
@@ -28,6 +29,7 @@ resource "null_resource" "server-install" {
 resource "null_resource" "profile-server" {
   count = var.servercount
   triggers = {
+    id = digitalocean_droplet.server[count.index].id
     file = sha1(file("profile-d.sh"))
   }
   provisioner "file" {
@@ -37,7 +39,7 @@ resource "null_resource" "profile-server" {
     }
     content = templatefile("profile-d.sh", {
       addr = digitalocean_droplet.server[count.index].ipv4_address_private
-      dc = digitalocean_droplet.server[count.index].region
+      dc = var.region
     })
     destination = "/etc/profile.d/poc.sh"
   }
@@ -48,6 +50,7 @@ resource "null_resource" "consul-server" {
   depends_on = [null_resource.server-install]
   count = var.servercount
   triggers = {
+    id = digitalocean_droplet.server[count.index].id
     file = sha1(file("consul-server.hcl"))
   }
   provisioner "file" {
@@ -56,7 +59,7 @@ resource "null_resource" "consul-server" {
       private_key = file("/root/.ssh/id_rsa")
     }
     content = templatefile("consul-server.hcl", {
-      dc = digitalocean_droplet.server[count.index].region
+      dc = var.region
       addr = digitalocean_droplet.server[count.index].ipv4_address_private
       count = var.servercount
       token = var.do_token
@@ -70,6 +73,7 @@ resource "null_resource" "nomad-server" {
   depends_on = [null_resource.server-install]
   count = var.servercount
   triggers = {
+    id = digitalocean_droplet.server[count.index].id
     file = sha1(file("nomad-server.hcl"))
   }
   provisioner "file" {
