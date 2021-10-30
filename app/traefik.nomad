@@ -27,7 +27,7 @@ job "traefik" {
         image = "traefik:v2.5"
         host_network = true
         args = [
-          "--api.insecure=true", "--api.dashboard=true",
+          "--api.insecure=true", "--api.dashboard=true","--ping=true",
           "--providers.consul.endpoints=127.0.0.1:8500",
           "--providers.consulcatalog.endpoint.scheme=http", "--providers.consulcatalog.exposedByDefault=false"
         ]

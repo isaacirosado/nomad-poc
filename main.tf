@@ -1,5 +1,8 @@
 #All the basic stuff to initialize
 terraform {
+  backend "local" {
+    path = "/tmp/terraform.tfstate"
+  }
   required_providers {
     digitalocean = {
       source = "digitalocean/digitalocean"

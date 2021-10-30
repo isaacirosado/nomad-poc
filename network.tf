@@ -11,15 +11,13 @@ resource "digitalocean_loadbalancer" "public" {
   forwarding_rule {
     entry_protocol = "http"
     entry_port = 80
-#    entry_port = 443
-#    entry_protocol = "https"
-    target_port = 80
     target_protocol = "http"
+    target_port = 80
 #    certificate_name = digitalocean_certificate.cert.name
   }
   healthcheck {
     protocol = "http"
-    port = 80
+    port = 8080
     path = "/ping"
   }
   droplet_tag = "client"

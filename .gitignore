@@ -15,5 +15,5 @@ override.tf.json
 *_override.tf
 *_override.tf.json
 
-# Ignore file with credentials
-init.sh
+# Ignore tmp files
+myip.txt
