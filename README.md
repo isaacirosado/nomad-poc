@@ -75,3 +75,10 @@ We are provisioning/configuring most everything with Hashicorp's Terraform:
   ```
   export NOMAD_ADDR="http://`doctl compute droplet list --format Name,PrivateIPv4 --no-header --tag-name client | grep client0 | awk '{print $2;}'`:4646"
   ```
+  - And deploy the load-balancer
+  After a few seconds, the balancer should have one instance running per client
+  ```
+  nomad run app/traefik.nomad
+  nomad status traefik
+  ```
+  The load-balancer's dashboard will be available on port :8080 of any client, get the URL with: `echo "http://`doctl compute droplet list --format Name,PublicIPv4 --no-header --tag-name client | grep client0 | awk '{print $2;}'`:8080"`
