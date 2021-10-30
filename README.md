@@ -34,6 +34,12 @@ We are provisioning/configuring most everything with Hashicorp's Terraform:
   pdsh -R ssh -l root -w `doctl compute droplet list --format PublicIPv4 --no-header --tag-name cluster | paste -s -d','` bash --login -c \"nomad node status\"
   ```
 
+- Other tools
+  - "nomad" (as a client to manage deployments), make sure to use the same version as the cluster
+  - "dig" for DNS queries
+
+## Deployment
+
 - Compile the LXC driver for Nomad (because of this bug: https://github.com/hashicorp/nomad-driver-lxc/issues/16 that renders it incompatible with LXC v4)
   ```
   wget -c https://golang.org/dl/go1.17.2.linux-amd64.tar.gz
@@ -56,10 +62,6 @@ We are provisioning/configuring most everything with Hashicorp's Terraform:
   make build
   ```
 
-- Install other tools
-  - "nomad" (as a client to manage deployments), make sure to use the same version as the cluster
-  - "dig" for DNS queries
-
 - Deploy
   - Create infrastructure
   ```
@@ -81,4 +83,7 @@ We are provisioning/configuring most everything with Hashicorp's Terraform:
   nomad run app/traefik.nomad
   nomad status traefik
   ```
-  The load-balancer's dashboard will be available on port :8080 of any client, get the URL with: `echo "http://`doctl compute droplet list --format Name,PublicIPv4 --no-header --tag-name client | grep client0 | awk '{print $2;}'`:8080"`
+  The load-balancer's dashboard will be available on port :8080 of any client, get the URL with:
+  ```
+  echo "http://`doctl compute droplet list --format Name,PublicIPv4 --no-header --tag-name client | grep client0 | awk '{print $2;}'`:8080"
+  ```
