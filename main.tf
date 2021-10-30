@@ -24,3 +24,7 @@ variable "servercount" {
 variable "clientcount" {
   default = 4 
 }
+
+variable "myip" {
+  default = "120.147.138.51" 
+}

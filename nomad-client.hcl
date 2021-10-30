@@ -7,8 +7,10 @@ bind_addr = "${addr}"
 client {
   enabled = true
   host_network "private" {
-   cidr = "10.106.0.0/20"
-   reserved_ports = "22,80"
+   interface = "eth1"
+  }
+  host_network "public" {
+   interface = "eth0"
   }
 }
 consul {

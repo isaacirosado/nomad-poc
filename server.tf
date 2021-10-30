@@ -89,3 +89,19 @@ resource "null_resource" "nomad-server" {
     destination = "/etc/nomad.d/nomad.hcl"
   }
 }
+
+resource "null_resource" "server-services" {
+  depends_on = [null_resource.consul-server,null_resource.nomad-server]
+  count = var.servercount
+  triggers = {
+    id = digitalocean_droplet.server[count.index].id
+    install = sha1(file("enable-services.sh"))
+  }
+  provisioner "remote-exec" {
+    connection {
+      host = digitalocean_droplet.server[count.index].ipv4_address
+      private_key = file("/root/.ssh/id_rsa")
+    }
+    script = "enable-services.sh"
+  }
+}

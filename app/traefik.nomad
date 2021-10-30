@@ -9,7 +9,7 @@ job "traefik" {
     network {
       port "http" {
         static = 80
-        host_network = "private"
+        host_network = "public"
       }
       port "api" {
         static = 8080
@@ -19,13 +19,6 @@ job "traefik" {
 
     service {
       name = "traefik"
-      check {
-        name = "alive"
-        type = "tcp"
-        port = "http"
-        interval = "10s"
-        timeout = "2s"
-      }
     }
 
     task "traefik" {
@@ -33,6 +26,10 @@ job "traefik" {
       config {
         image = "traefik:v2.5"
         host_network = true
+        args = [
+          "--api.insecure=true", "--api.dashboard=true",
+          "--providers.consul.endpoints=127.0.0.1:8500", "--providers.consulcatalog.endpoint.scheme=http"
+        ]
       }
 
       resources {
