@@ -1,3 +1,9 @@
+resource "digitalocean_certificate" "wildcard" {
+  name = "rosado-live-wildcard"
+  type = "lets_encrypt"
+  domains = [var.domain, "*.${var.domain}"]
+}
+
 resource "digitalocean_loadbalancer" "public" {
   name = "loadbalancer"
   region = var.region
@@ -13,7 +19,7 @@ resource "digitalocean_loadbalancer" "public" {
     entry_port = 443
     target_protocol = "http"
     target_port = 80
-    certificate_name = "rosado-live-wildcard"
+    certificate_name = digitalocean_certificate.wildcard.name
   }
   healthcheck {
     protocol = "http"
