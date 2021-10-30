@@ -55,3 +55,23 @@ We are provisioning/configuring most everything with Hashicorp's Terraform:
   cd nomad-driver-containerd
   make build
   ```
+
+- Install other tools
+  - "nomad" (as a client to manage deployments), make sure to use the same version as the cluster
+  - "dig" for DNS queries
+
+- Deploy
+  - Create infrastructure
+  ```
+  terraform init
+  terraform apply
+  ```
+    - Check that everything is working nice
+    ```
+    pdsh -R ssh -l root -w `doctl compute droplet list --format PublicIPv4 --no-header --tag-name cluster | paste -s -d','` bash --login -c \"consul members\"
+    pdsh -R ssh -l root -w `doctl compute droplet list --format PublicIPv4 --no-header --tag-name cluster | paste -s -d','` bash --login -c \"nomad status\"
+    ```
+  - Once everything is working nicely, export one of the cluster's clients as an entrypoint:
+  ```
+  export NOMAD_ADDR="http://`doctl compute droplet list --format Name,PrivateIPv4 --no-header --tag-name client | grep client0 | awk '{print $2;}'`:4646"
+  ```
