@@ -31,3 +31,7 @@ variable "clientcount" {
 variable "myip" {
   default = "120.147.138.51" 
 }
+
+variable "domain" {
+  default = "rosado.live" 
+}
