@@ -1,36 +1,35 @@
-job "demo" {
+job "test" {
   region = "lon1"
   datacenters = ["lon1"]
 
-  group "demo" {
+  group "test" {
     count = 1
 
     network {
       port "http" {
+	static = 2368
         host_network = "private"
       }
     }
 
     service {
-      name = "demo"
+      name = "test"
       port = "http"
 
       tags = [
         "traefik.enable=true",
-        "traefik.http.routers.http.rule=Path(`/demo`)",
+        "traefik.http.routers.test.rule=Host(`test.rosado.live`)"
       ]
     }
 
-    task "demo" {
-      env {
-        PORT = "${NOMAD_PORT_http}"
-        NODE_IP = "${NOMAD_IP_http}"
-      }
-
+    task "test" {
       driver = "containerd-driver"
+      #env {
+      #  url = "https://test.rosado.live"
+      #}
 
       config {
-        image = "hashicorp/demo-webapp-lb-guide"
+        image = "ghost:4.20"
         host_network = true
       }
     }
