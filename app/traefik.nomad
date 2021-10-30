@@ -28,7 +28,8 @@ job "traefik" {
         host_network = true
         args = [
           "--api.insecure=true", "--api.dashboard=true",
-          "--providers.consul.endpoints=127.0.0.1:8500", "--providers.consulcatalog.endpoint.scheme=http"
+          "--providers.consul.endpoints=127.0.0.1:8500",
+          "--providers.consulcatalog.endpoint.scheme=http", "--providers.consulcatalog.exposedByDefault=false"
         ]
       }
 
