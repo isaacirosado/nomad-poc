@@ -9,11 +9,9 @@ job "traefik" {
     network {
       port "http" {
         static = 80
-        host_network = "public"
       }
       port "api" {
         static = 8080
-        host_network = "private"
       }
     }
 
@@ -27,7 +25,8 @@ job "traefik" {
         image = "traefik:v2.5"
         host_network = true
         args = [
-          "--api.insecure=true", "--api.dashboard=true","--ping=true",
+          "--entryPoints.web.address=${NOMAD_HOST_ADDR_http}", "--entryPoints.traefik.address=${NOMAD_ADDR_api}",
+          "--api.insecure=true", "--api.dashboard=true", "--ping=true",
           "--providers.consul.endpoints=127.0.0.1:8500",
           "--providers.consulcatalog.endpoint.scheme=http", "--providers.consulcatalog.exposedByDefault=false"
         ]

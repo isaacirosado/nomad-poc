@@ -6,12 +6,7 @@ region = "${dc}"
 bind_addr = "${addr}"
 client {
   enabled = true
-  host_network "private" {
-   interface = "eth1"
-  }
-  host_network "public" {
-   interface = "eth0"
-  }
+  network_interface = "eth1"
 }
 consul {
   address = "127.0.0.1:8500"
