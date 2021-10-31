@@ -6,9 +6,7 @@ job "demo" {
     count = 1
 
     network {
-      port "http" {
-        host_network = "private"
-      }
+      port "http" {}
     }
 
     service {
@@ -17,7 +15,7 @@ job "demo" {
 
       tags = [
         "traefik.enable=true",
-        "traefik.http.routers.http.rule=Path(`/demo`)",
+        "traefik.http.routers.demo.rule=Host(`demo.rosado.live`)"
       ]
     }
 
