@@ -35,3 +35,7 @@ variable "myip" {
 variable "domain" {
   default = "rosado.live" 
 }
+
+variable "vpcid" {
+  default = "112b5b44-783b-4a7d-ad6e-fb5d86ada5d0" 
+}
