@@ -7,6 +7,7 @@ job "demo" {
 
     network {
       port "http" {}
+      mode = "bridge"
     }
 
     service {
@@ -29,7 +30,6 @@ job "demo" {
 
       config {
         image = "hashicorp/demo-webapp-lb-guide"
-        host_network = true
       }
     }
   }

@@ -113,9 +113,24 @@ resource "null_resource" "nomad-client-plugins" {
     destination = "/opt/nomad/plugins/nomad-driver-lxc"
   }
 }
+resource "null_resource" "nomad-client-cni" {
+  depends_on = [null_resource.nomad-client-plugins]
+  count = var.clientcount
+  triggers = {
+    id = digitalocean_droplet.client[count.index].id
+    cni = sha1(file("cni-install.sh"))
+  }
+  provisioner "remote-exec" {
+    connection {
+      host = digitalocean_droplet.client[count.index].ipv4_address
+      private_key = file("/root/.ssh/id_rsa")
+    }
+    script = "cni-install.sh"
+  }
+}
 
 resource "null_resource" "client-services" {
-  depends_on = [null_resource.nomad-client-plugins]
+  depends_on = [null_resource.nomad-client-cni]
   count = var.clientcount
   triggers = {
     id = digitalocean_droplet.client[count.index].id
