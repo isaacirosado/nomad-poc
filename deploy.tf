@@ -12,20 +12,22 @@ resource "nomad_job" "traefik" {
 
 
 
-resource "digitalocean_database_db" "test1" {
+resource "digitalocean_database_db" "test" {
+ count = var.instancecount
  cluster_id = digitalocean_database_cluster.default.id
- name = "test1"
+ name = "test${count.index}"
 }
-resource "nomad_job" "test1" {
+resource "nomad_job" "test" {
+  count = var.instancecount
   depends_on = [nomad_job.traefik]
   jobspec = templatefile("app/ghost-containerd.nomad", {
-    name = "test1"
+    name = "test${count.index}"
     region = var.region
     domain = var.domain
     dbhost = digitalocean_database_cluster.default.private_host
     dbport = digitalocean_database_cluster.default.port
     dbuser = digitalocean_database_cluster.default.user
     dbpswd = digitalocean_database_cluster.default.password
-    dbname = digitalocean_database_db.test1.name
+    dbname = digitalocean_database_db.test[count.index].name
   })
 }

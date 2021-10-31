@@ -21,21 +21,25 @@ provider "digitalocean" {
 }
 
 variable "servercount" {
-  default = 3 
+  default = 3
 }
 
 variable "clientcount" {
-  default = 4 
+  default = 4
 }
 
 variable "myip" {
-  default = "120.147.138.51" 
+  default = "120.147.138.51"
 }
 
 variable "domain" {
-  default = "rosado.live" 
+  default = "rosado.live"
 }
 
 variable "vpcid" {
-  default = "112b5b44-783b-4a7d-ad6e-fb5d86ada5d0" 
+  default = "112b5b44-783b-4a7d-ad6e-fb5d86ada5d0"
+}
+
+variable "instancecount" {
+  default = 9
 }
