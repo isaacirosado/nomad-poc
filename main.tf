@@ -41,5 +41,5 @@ variable "vpcid" {
 }
 
 variable "instancecount" {
-  default = 9
+  default = 15
 }
