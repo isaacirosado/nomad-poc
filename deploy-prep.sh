@@ -25,6 +25,9 @@ EOF
 #Update local groups to match DO's tags
 doctl compute droplet list --format Name,Tags --no-header --tag-name=cluster > /etc/genders
 
-#Update LXC template
+#Copy LXC template (and cache build)
 chmod +x app/lxc-template
 pdcp -pg client app/lxc-template /opt/nomad/data/
+#pdsh -gclient bash --login -c \"lxc-stop -nubuntu\; lxc-destroy -nubuntu\"
+#pdsh -gclient bash --login -c \"lxc-create -nubuntu -t /usr/share/lxc/templates/lxc-ubuntu\"
+#pdsh -gclient bash --login -c \"lxc-destroy -nubuntu\"

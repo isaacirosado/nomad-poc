@@ -9,6 +9,7 @@ job "${name}" {
       port "http" {
         static = ${httpport}
       }
+      mode = "hosts"
     }
 
     service {
@@ -38,7 +39,6 @@ job "${name}" {
         log_level = "trace"
         verbosity = "verbose"
         template = "/opt/nomad/data/lxc-template"
-        template_args = ["-F"]
       }
 
       resources {

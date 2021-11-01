@@ -1,4 +1,3 @@
-log_level = "DEBUG"
 enable_syslog = true
 datacenter = "${dc}"
 data_dir = "/opt/consul"

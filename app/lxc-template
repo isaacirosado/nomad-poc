@@ -865,13 +865,5 @@ else
     finalize_user $user
 fi
 
-echo ""
-echo "##"
-if [ -n "$bindhome" ]; then
-    echo "# Log in as user $bindhome"
-else
-    echo "# The default user is '$user' with password '$password'!"
-    echo "# Use the 'sudo' command to run tasks as root in the container."
-fi
-echo "##"
-echo ""
+echo "printenv"
+printenv
