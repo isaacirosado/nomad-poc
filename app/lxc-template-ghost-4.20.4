@@ -475,9 +475,6 @@ post_process $rootfs $release
 
 finalize_user $user
 
-chroot $rootfs systemctl disable apparmor
-chroot $rootfs systemctl disable sshd
-
 export update="1"
 install_packages $rootfs nodejs
 

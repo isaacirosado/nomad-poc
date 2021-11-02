@@ -20,6 +20,52 @@ try_mksubvolume()
     mkdir -p $path
 }
 
+configure_ubuntu()
+{
+    rootfs=$1
+    hostname=$2
+    release=$3
+
+    # configure the network using the dhcp
+    if chroot $rootfs which netplan >/dev/null 2>&1; then
+        cat <<EOF > $rootfs/etc/netplan/10-lxc.yaml
+network:
+  ethernets:
+    eth0: {dhcp4: true}
+  version: 2
+EOF
+    else
+        cat <<EOF > $rootfs/etc/network/interfaces
+# This file describes the network interfaces available on your system
+# and how to activate them. For more information, see interfaces(5).
+
+# The loopback network interface
+auto lo
+iface lo inet loopback
+
+auto eth0
+iface eth0 inet dhcp
+EOF
+    fi
+
+    # set the hostname
+    cat <<EOF > $rootfs/etc/hostname
+$hostname
+EOF
+    # set minimal hosts
+    cat <<EOF > $rootfs/etc/hosts
+127.0.0.1   localhost
+127.0.1.1   $hostname
+
+# The following lines are desirable for IPv6 capable hosts
+::1     ip6-localhost ip6-loopback
+fe00::0 ip6-localnet
+ff00::0 ip6-mcastprefix
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters
+EOF
+}
+
 copy_configuration()
 {
     path=$1
@@ -118,7 +164,9 @@ config="$path/config"
 export DEBIAN_FRONTEND=noninteractive
 
 try_mksubvolume $rootfs
-rsync -SHaAX --no-specials --no-devices ${LXC_CACHE_PATH}/ghost-${version}/ $rootfs/
+rsync -SHaAX --no-specials --no-devices /var/lib/lxc/ghost-${version}/rootfs/ $rootfs/
+
+configure_ubuntu $rootfs $name $release
 copy_configuration $path $rootfs $name $arch $release
 
 export GHOST_INSTALL="/var/www/site"
@@ -134,6 +182,7 @@ cat <<EOF > ${rootfs}${GHOST_INSTALL}/config.production.json
     "client": "mysql",
     "connection": {
       "host": "${dbhost}",
+      "port": ${dbport},
       "user": "${dbuser}",
       "password": "${dbpass}",
       "database": "${dbname}"

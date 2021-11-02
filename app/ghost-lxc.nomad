@@ -28,7 +28,6 @@ job "${name}" {
         log_level = "trace"
         verbosity = "verbose"
         template = "/opt/nomad/data/lxc-template-cp"
-        network_mode = "host"
         template_args = [
           "--version=${version}",
           "--port=${httpport}", "--url=http://${name}.${domain}",

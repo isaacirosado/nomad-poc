@@ -30,5 +30,4 @@ doctl compute droplet list --format Name,Tags --no-header --tag-name=cluster > /
 export GHOST_VERSION="4.20.4"
 chmod +x app/lxc-template-*
 pdcp -pgclient app/lxc-template-* /opt/nomad/data/
-pdsh -gclient bash --login -c \"lxc-info ghost-${GHOST_VERSION} \|\| lxc-create -t/opt/nomad/data/lxc-template-ghost-${GHOST_VERSION} -nghost-${GHOST_VERSION} -- -F\"
-pdsh -gclient bash --login -c \"rsync -SHaAX --no-specials --no-devices /var/lib/lxc/ghost-${GHOST_VERSION}/rootfs/ /var/cache/lxc/ghost-${GHOST_VERSION}\"
+pdsh -gclient bash --login -c \"lxc-info ghost-${GHOST_VERSION} \|\| lxc-create -t/opt/nomad/data/lxc-template-ghost-${GHOST_VERSION} -nghost-${GHOST_VERSION}\"
