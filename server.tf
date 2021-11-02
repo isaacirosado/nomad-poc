@@ -7,7 +7,7 @@ resource "digitalocean_droplet" "server" {
   ssh_keys = [
     32194409 #controller
   ]
-  size = "s-2vcpu-2gb"
+  size = "s-2vcpu-4gb"
   droplet_agent = true
 }
 

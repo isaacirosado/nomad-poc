@@ -27,9 +27,11 @@ job "${name}" {
       config {
         log_level = "trace"
         verbosity = "verbose"
-        template = "/opt/nomad/data/lxc-template"
+        template = "/opt/nomad/data/lxc-template-cp"
+        network_mode = "host"
         template_args = [
-          "--port=${httpport}", "--url=http://${name}.${domain}", "--user=node", "--password=blah",
+          "--version=${version}",
+          "--port=${httpport}", "--url=http://${name}.${domain}",
           "--dbhost=${dbhost}", "--dbuser=${dbuser}", "--dbpass=${dbpswd}", "--dbport=${dbport}", "--dbname=${dbname}"
         ]
       }

@@ -2,7 +2,8 @@ resource "null_resource" "deploy-prep" {
   depends_on = [null_resource.client-services, null_resource.server-services]
   triggers = {
     script = sha1(file("deploy-prep.sh"))
-    lxc = sha1(file("app/lxc-template"))
+    lxc1 = sha1(file("app/lxc-template-cp"))
+    lxc2 = sha1(file("app/lxc-template-ghost-4.20.4"))
   }
   provisioner "local-exec" {
     command = "bash deploy-prep.sh"
@@ -21,7 +22,6 @@ resource "nomad_job" "traefik" {
   })
 }
 
-
 resource "digitalocean_database_db" "test" {
  count = var.instancecount*2
  cluster_id = digitalocean_database_cluster.default.id
@@ -33,6 +33,7 @@ resource "nomad_job" "test" {
   depends_on = [nomad_job.traefik]
   jobspec = templatefile("app/ghost-containerd.nomad", {
     name = "test${count.index}"
+    version = "4.20.4"
     region = var.region
     domain = var.domain
     dbhost = digitalocean_database_cluster.default.private_host
@@ -49,15 +50,17 @@ resource "random_integer" "staticport" {
   min = 17000
   max = 19999
   keepers = {
+    lxc1 = sha1(file("app/lxc-template-cp"))
+    lxc2 = sha1(file("app/lxc-template-ghost-4.20.4"))
     script = sha1(file("deploy-prep.sh"))
-    lxc = sha1(file("app/lxc-template"))
   }
 }
 resource "nomad_job" "lxc" {
   depends_on = [nomad_job.traefik, null_resource.deploy-prep]
   count = var.instancecount
   jobspec = templatefile("app/ghost-lxc.nomad", {
-    name = "test${count.index + var.instancecount}"
+    name = "again${count.index + var.instancecount}"
+    version = "4.20.4"
     httpport = random_integer.staticport[count.index].result
     region = var.region
     domain = var.domain

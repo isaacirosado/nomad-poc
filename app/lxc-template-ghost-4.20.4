@@ -5,7 +5,6 @@ export PATH=$PATH:/usr/sbin:/usr/bin:/sbin:/bin
 
 LOCALSTATEDIR="/var"
 LXC_TEMPLATE_CONFIG="/usr/share/lxc/config"
-# Allows the lxc-cache directory to be set by environment variable
 LXC_CACHE_PATH=${LXC_CACHE_PATH:-"$LOCALSTATEDIR/cache/lxc"}
 
 if [ -r /etc/default/lxc ]; then
@@ -93,31 +92,6 @@ EOF
     else
         chroot $rootfs locale-gen $LANG || true
         chroot $rootfs update-locale LANG=$LANG || true
-    fi
-
-    # generate new SSH keys
-    if [ -x $rootfs/var/lib/dpkg/info/openssh-server.postinst ]; then
-        cat > $rootfs/usr/sbin/policy-rc.d << EOF
-#!/bin/sh
-exit 101
-EOF
-        chmod +x $rootfs/usr/sbin/policy-rc.d
-
-        if [ -f "$rootfs/etc/init/ssh.conf" ]; then
-            mv "$rootfs/etc/init/ssh.conf" "$rootfs/etc/init/ssh.conf.disabled"
-        fi
-
-        rm -f $rootfs/etc/ssh/ssh_host_*key*
-
-        DPKG_MAINTSCRIPT_PACKAGE=openssh DPKG_MAINTSCRIPT_NAME=postinst chroot $rootfs /var/lib/dpkg/info/openssh-server.postinst configure
-
-        sed -i "s/root@$(hostname)/root@$hostname/g" $rootfs/etc/ssh/ssh_host_*.pub
-
-        if [ -f "$rootfs/etc/init/ssh.conf.disabled" ]; then
-            mv "$rootfs/etc/init/ssh.conf.disabled" "$rootfs/etc/init/ssh.conf"
-        fi
-
-        rm -f $rootfs/usr/sbin/policy-rc.d
     fi
 
     return 0
@@ -224,7 +198,7 @@ download_ubuntu()
             ;;
     esac
 
-    packages_template=${packages_template:-"apt-transport-https,ssh,vim"}
+    packages_template=${packages_template:-"apt-transport-https,vim"}
     debootstrap_parameters=
 
     # Try to guess a list of langpacks to install
@@ -453,7 +427,7 @@ EOF
     rm $rootfs/usr/sbin/policy-rc.d
 }
 
-options=$(getopt -o a:p:r:v:n:F:d -l arch:,path:,release:,variant:,name:,flush-cache,rootfs:,user:,password:,port:,url:,dbhost:,dbuser:,dbpass:,dbport:,dbname: -- "$@")
+options=$(getopt -o p:F -l path:,release:,name:,flush-cache,rootfs: -- "$@")
 eval set -- "$options"
 
 . /etc/lsb-release
@@ -461,6 +435,8 @@ release=$DISTRIB_CODENAME
 arch=`/usr/bin/dpkg --print-architecture`
 hostarch=$arch
 flushcache=0
+user="node"
+password="everythingisawesome9"
 
 while true
 do
@@ -468,19 +444,10 @@ do
       --rootfs)       rootfs=$2; shift 2;;
       -p|--path)      path=$2; shift 2;;
       -n|--name)      name=$2; shift 2;;
-      --user)         user=$2; shift 2;;
-      --password)     password=$2; shift 2;;
       -F|--flush-cache) flushcache=1; shift 1;;
       -r|--release)   release=$2; shift 2;;
-      -v|--variant)   variant=$2; shift 2;;
-      -a|--arch)      arch=$2; shift 2;;
       --port)         port=$2; shift 2;;
       --url)          url=$2; shift 2;;
-      --dbhost)       dbhost=$2; shift 2;;
-      --dbuser)       dbuser=$2; shift 2;;
-      --dbpass)       dbpass=$2; shift 2;;
-      --dbport)       dbport=$2; shift 2;;
-      --dbname)       dbname=$2; shift 2;;
       --)             shift 1; break ;;
       *)              break ;;
     esac
@@ -494,7 +461,6 @@ if [ -z "$path" ]; then
 fi
 
 config="$path/config"
-
 export DEBIAN_FRONTEND=noninteractive
 
 install_ubuntu $rootfs $release $flushcache $LXC_CACHE_PATH
@@ -509,6 +475,9 @@ post_process $rootfs $release
 
 finalize_user $user
 
+chroot $rootfs systemctl disable apparmor
+chroot $rootfs systemctl disable sshd
+
 export update="1"
 install_packages $rootfs nodejs
 
@@ -520,8 +489,6 @@ mkdir -p ${GHOST_INSTALL}
 chown -Rf ${user}:${user} ${GHOST_INSTALL}
 npm install ghost-cli@latest -g
 su ${user} -c "ghost install ${GHOST_VERSION} --db=sqlite3 --no-prompt --no-check-mem --no-stack --no-setup --dir ${GHOST_INSTALL}"
-cd ${GHOST_INSTALL}
-su ${user} -c "ghost config --ip 0.0.0.0 --port ${port} --no-prompt --url ${url} --db mysql --dbhost ${dbhost} --dbuser ${dbuser} --dbpass ${dbpass} --dbport ${dbport} --dbname ${dbname}"
 EOF
 
 cat <<EOF > $rootfs/etc/systemd/system/ghost.service
@@ -543,3 +510,42 @@ EOF
 chroot $rootfs systemctl enable ghost
 
 umount $rootfs/proc
+
+#Ugly hacks around DigitalOcean's forceful key-on-every-table setting
+cd ${rootfs}${GHOST_INSTALL}/versions/${GHOST_VERSION}
+cat <<'EOF' > lock-table-js.diff
+--- node_modules/knex-migrator/migrations/lock-table.js.bkp     2021-11-02 09:46:35.625371303 +0000
++++ node_modules/knex-migrator/migrations/lock-table.js 2021-11-02 09:47:21.417947506 +0000
+@@ -15,7 +15,7 @@
+             }
+
+             return connection.schema.createTable('migrations_lock', function (table) {
+-                table.string('lock_key', 191).nullable(false).primary();
++                table.specificType('lock_key', 'char(64) primary key');
+                 table.boolean('locked').default(0);
+                 table.dateTime('acquired_at').nullable();
+                 table.dateTime('released_at').nullable();
+EOF
+patch -f node_modules/knex-migrator/migrations/lock-table.js < lock-table-js.diff
+
+cat <<'EOF' > commands-js.diff
+--- core/server/data/schema/commands.js.old     2021-11-02 09:42:48.862517114 +0000
++++ core/server/data/schema/commands.js 2021-11-02 09:43:51.095300590 +0000
+@@ -312,11 +312,13 @@
+  */
+ function createTable(table, transaction, tableSpec = schema[table]) {
+     return (transaction || db.knex).schema.hasTable(table)
+-        .then(function (exists) {
++        .then(async function (exists) {
+             if (exists) {
+                 return;
+             }
+
++           await (transaction || db.knex).raw('SET sql_require_primary_key=0');
++
+             return (transaction || db.knex).schema.createTable(table, function (t) {
+                 Object.keys(tableSpec)
+                     .filter(column => !(column.startsWith('@@')))
+EOF
+patch -f core/server/data/schema/commands.js < commands-js.diff
+
