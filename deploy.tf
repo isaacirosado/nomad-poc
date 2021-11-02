@@ -65,7 +65,7 @@ resource "nomad_job" "lxc" {
     dbport = digitalocean_database_cluster.default.port
     dbuser = digitalocean_database_cluster.default.user
     dbpswd = digitalocean_database_cluster.default.password
-    dbname = digitalocean_database_db.test[count.index].name
+    dbname = digitalocean_database_db.test[count.index + var.instancecount].name
   })
   purge_on_destroy = true
 }

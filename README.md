@@ -54,9 +54,14 @@ We are provisioning/configuring most everything with Hashicorp's Terraform:
   ```
 
 - Deploy
-  - Create infrastructure
+  - Create DB
   ```
   terraform init
+  terraform apply --target="digitalocean_database_cluster.default"
+  ```
+  Go to the DO dashboard and change the admin user's encryption to "Legacy – MySQL 5.x" (TODO: Fix issue with client in LXC)
+  - Create infrastructure
+  ```
   terraform apply && source /etc/profile.d/poc.sh
   ```
     - Check that everything is working nice

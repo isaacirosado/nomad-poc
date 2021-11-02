@@ -3,8 +3,6 @@
 # Make sure the usual locations are in PATH
 export PATH=$PATH:/usr/sbin:/usr/bin:/sbin:/bin
 
-set -e
-
 LOCALSTATEDIR="/var"
 LXC_TEMPLATE_CONFIG="/usr/share/lxc/config"
 # Allows the lxc-cache directory to be set by environment variable
@@ -125,9 +123,6 @@ EOF
     return 0
 }
 
-# finish setting up the user in the container by injecting ssh key and
-# adding sudo group membership.
-# passed-in user is either 'ubuntu' or the user to bind in from host.
 finalize_user()
 {
     user=$1
@@ -145,78 +140,7 @@ finalize_user()
         chroot $rootfs adduser ${user} $group >/dev/null 2>&1 || true
     done
 
-    if [ -n "$auth_key" -a -f "$auth_key" ]; then
-        u_path="/home/${user}/.ssh"
-        root_u_path="$rootfs/$u_path"
-        mkdir -p $root_u_path
-        cp $auth_key "$root_u_path/authorized_keys"
-        chroot $rootfs chown -R ${user}: "$u_path"
-
-        echo "Inserted SSH public key from $auth_key into /home/${user}/.ssh/authorized_keys"
-    fi
     return 0
-}
-
-# A function to try and autodetect squid-deb-proxy servers on the local network
-# if either the squid-deb-proxy-client package is installed on the host or
-# a parent container set the 50squid-deb-proxy-client file.
-squid_deb_proxy_autodetect()
-{
-    local apt_discover=/usr/share/squid-deb-proxy-client/apt-avahi-discover
-    local proxy_file=/etc/apt/apt.conf.d/50squid-deb-proxy-client
-    squid_proxy_line=  # That's a global :/
-
-    # Maybe the host is aware of a squid-deb-proxy?
-    if [ -f $apt_discover ]; then
-        echo -n "Discovering squid-deb-proxy..."
-        squid_proxy_line=$($apt_discover)
-        if [ -n "$squid_proxy_line" ]; then
-            echo "found squid-deb-proxy: $squid_proxy_line"
-        else
-            echo "no squid-deb-proxy found"
-        fi
-    fi
-
-    # Are we in a nested container, and the parent already knows of a proxy?
-    if [ -f $proxy_file ]; then
-        # Extract the squid URL from the file (whatever is between "")
-        squid_proxy_line=`cat $proxy_file | sed "s/.*\"\(.*\)\".*/\1/"`
-    fi
-}
-
-#
-# Choose proxies for container
-# http_proxy will be used by debootstrap on the host.
-# APT_PROXY will be used to set /etc/apt/apt.conf.d/70proxy in the container.
-#
-choose_container_proxy()
-{
-    local rootfs=$1
-    local arch=$2
-
-    if [ -z "$HTTP_PROXY" ]; then
-        HTTP_PROXY="none"
-    fi
-    case "$HTTP_PROXY" in
-    none)
-        squid_deb_proxy_autodetect
-        if [ -n "$squid_proxy_line" ]; then
-            APT_PROXY=$squid_proxy_line
-            export http_proxy=$squid_proxy_line
-        else
-            APT_PROXY=
-        fi
-        ;;
-    apt)
-        RES=`apt-config shell APT_PROXY Acquire::http::Proxy`
-        eval $RES
-        [ -z "$APT_PROXY" ] || export http_proxy=$APT_PROXY
-        ;;
-    *)
-        APT_PROXY=$HTTP_PROXY
-        export http_proxy=$HTTP_PROXY
-        ;;
-    esac
 }
 
 write_sourceslist()
@@ -224,13 +148,6 @@ write_sourceslist()
     # $1 => path to the partial cache or the rootfs
     # $2 => architecture we want to add
     # $3 => whether to use the multi-arch syntax or not
-
-    if [ -n "$APT_PROXY" ]; then
-        mkdir -p $1/etc/apt/apt.conf.d
-        cat > $1/etc/apt/apt.conf.d/70proxy << EOF
-Acquire::http::Proxy "$APT_PROXY" ;
-EOF
-    fi
 
     case $2 in
       amd64|i386)
@@ -343,7 +260,6 @@ download_ubuntu()
         return 1
     fi
 
-    choose_container_proxy $cache/partial-$arch/ $arch
     # download a mini ubuntu into a cache
     echo "Downloading ubuntu $release minimal ..."
     if [ -n "$(which qemu-debootstrap)" ]; then
@@ -516,7 +432,6 @@ post_process()
 {
     rootfs=$1
     release=$2
-    packages=$3
 
     # Disable service startup
     cat > $rootfs/usr/sbin/policy-rc.d << EOF
@@ -524,47 +439,6 @@ post_process()
 exit 101
 EOF
     chmod +x $rootfs/usr/sbin/policy-rc.d
-
-    # If the container isn't running a native architecture, setup multiarch
-    if [ -x "$(ls -1 ${rootfs}/usr/bin/qemu-*-static 2>/dev/null)" ]; then
-        dpkg_version=$(chroot $rootfs dpkg-query -W -f='${Version}' dpkg)
-        if chroot $rootfs dpkg --compare-versions $dpkg_version ge "1.16.2"; then
-            chroot $rootfs dpkg --add-architecture ${hostarch}
-        else
-            mkdir -p ${rootfs}/etc/dpkg/dpkg.cfg.d
-            echo "foreign-architecture ${hostarch}" > ${rootfs}/etc/dpkg/dpkg.cfg.d/lxc-multiarch
-        fi
-
-        # Save existing value of MIRROR and SECURITY_MIRROR
-        DEFAULT_MIRROR=$MIRROR
-        DEFAULT_SECURITY_MIRROR=$SECURITY_MIRROR
-
-        # Write a new sources.list containing both native and multiarch entries
-        > ${rootfs}/etc/apt/sources.list
-        write_sourceslist $rootfs $arch "native"
-
-        MIRROR=$DEFAULT_MIRROR
-        SECURITY_MIRROR=$DEFAULT_SECURITY_MIRROR
-        write_sourceslist $rootfs $hostarch "multiarch"
-
-        # Finally update the lists and install upstart using the host architecture
-        HOST_PACKAGES="upstart:${hostarch} mountall:${hostarch} isc-dhcp-client:${hostarch}"
-        chroot $rootfs apt-get update
-        if chroot $rootfs dpkg -l iproute2 | grep -q ^ii; then
-            HOST_PACKAGES="$HOST_PACKAGES iproute2:${hostarch}"
-        else
-            HOST_PACKAGES="$HOST_PACKAGES iproute:${hostarch}"
-        fi
-        install_packages $rootfs $HOST_PACKAGES
-    fi
-
-    # Install Packages in container
-    if [ -n "$packages" ]
-    then
-        local packages="`echo $packages | sed 's/,/ /g'`"
-        echo "Installing packages: ${packages}"
-        install_packages $rootfs $packages
-    fi
 
     if [ ! -L $rootfs/dev/shm ] && [ -e $rootfs/dev/shm ]; then
       rmdir $rootfs/dev/shm 2>/dev/null || mv $rootfs/dev/shm $rootfs/dev/shm.bak
@@ -579,85 +453,43 @@ EOF
     rm $rootfs/usr/sbin/policy-rc.d
 }
 
-usage()
-{
-    cat <<EOF
-$1 -h|--help [-a|--arch] [-d|--debug]
-   [-F | --flush-cache] [-r|--release <release>] [-v|--variant] [ -S | --auth-key <keyfile>]
-   [--rootfs <rootfs>] [--packages <packages>] [-u|--user <user>] [--password <password>]
-   [--port <network port>] [--url <url>]
-release: the ubuntu release (e.g. xenial): defaults to host release on ubuntu, otherwise uses latest LTS
-variant: debootstrap variant to use (see debootstrap(8))
-arch: the container architecture (e.g. amd64): defaults to host arch
-auth-key: SSH Public key file to inject into container
-packages: list of packages to add comma separated
-EOF
-    return 0
-}
-
-options=$(getopt -o a:b:hp:r:v:n:FS:du: -l arch:,help,path:,release:,variant:,name:,flush-cache,auth-key:,debug,rootfs:,packages:,user:,password:,port:,url: -- "$@")
-if [ $? -ne 0 ]; then
-    usage $(basename $0)
-    exit 1
-fi
+options=$(getopt -o a:p:r:v:n:F:d -l arch:,path:,release:,variant:,name:,flush-cache,rootfs:,user:,password:,port:,url:,dbhost:,dbuser:,dbpass:,dbport:,dbname: -- "$@")
 eval set -- "$options"
 
-release=xenial # Default to the last Ubuntu LTS release for non-Ubuntu systems
-if [ -f /etc/lsb-release ]; then
-    . /etc/lsb-release
-    if [ "$DISTRIB_ID" = "Ubuntu" ]; then
-        release=$DISTRIB_CODENAME
-    fi
-fi
-
+. /etc/lsb-release
+release=$DISTRIB_CODENAME
 arch=`/usr/bin/dpkg --print-architecture`
-debug=0
 hostarch=$arch
 flushcache=0
-packages=""
-user="ubuntu"
-password="ubuntu"
 
 while true
 do
     case "$1" in
-    -h|--help)      usage $0 && exit 0;;
-    --rootfs)       rootfs=$2; shift 2;;
-    -p|--path)      path=$2; shift 2;;
-    -n|--name)      name=$2; shift 2;;
-    -u|--user)      user=$2; shift 2;;
-    --password)     password=$2; shift 2;;
-    -F|--flush-cache) flushcache=1; shift 1;;
-    -r|--release)   release=$2; shift 2;;
-    -v|--variant)   variant=$2; shift 2;;
-    --packages)     packages=$2; shift 2;;
-    -a|--arch)      arch=$2; shift 2;;
-    -S|--auth-key)  auth_key=$2; shift 2;;
-    -d|--debug)     debug=1; shift 1;;
-    --port)       port=$2; shift 2;;
-    --url)       url=$2; shift 2;;
-    --)             shift 1; break ;;
-        *)              break ;;
+      --rootfs)       rootfs=$2; shift 2;;
+      -p|--path)      path=$2; shift 2;;
+      -n|--name)      name=$2; shift 2;;
+      --user)         user=$2; shift 2;;
+      --password)     password=$2; shift 2;;
+      -F|--flush-cache) flushcache=1; shift 1;;
+      -r|--release)   release=$2; shift 2;;
+      -v|--variant)   variant=$2; shift 2;;
+      -a|--arch)      arch=$2; shift 2;;
+      --port)         port=$2; shift 2;;
+      --url)          url=$2; shift 2;;
+      --dbhost)       dbhost=$2; shift 2;;
+      --dbuser)       dbuser=$2; shift 2;;
+      --dbpass)       dbpass=$2; shift 2;;
+      --dbport)       dbport=$2; shift 2;;
+      --dbname)       dbname=$2; shift 2;;
+      --)             shift 1; break ;;
+      *)              break ;;
     esac
 done
-
-if [ $debug -eq 1 ]; then
-    set -x
-fi
-
-if [ "$arch" = "i686" ]; then
-    arch=i386
-fi
 
 which debootstrap >/dev/null 2>&1 || { echo "'debootstrap' command is missing" >&2; false; }
 
 if [ -z "$path" ]; then
     echo "'path' parameter is required"
-    exit 1
-fi
-
-if [ "$(id -u)" != "0" ]; then
-    echo "This script should be run as 'root'"
     exit 1
 fi
 
@@ -673,7 +505,7 @@ configure_ubuntu $rootfs $name $release $user $password
 
 copy_configuration $path $rootfs $name $arch $release
 
-post_process $rootfs $release $trim_container $packages
+post_process $rootfs $release
 
 finalize_user $user
 
@@ -689,7 +521,7 @@ chown -Rf ${user}:${user} ${GHOST_INSTALL}
 npm install ghost-cli@latest -g
 su ${user} -c "ghost install ${GHOST_VERSION} --db=sqlite3 --no-prompt --no-check-mem --no-stack --no-setup --dir ${GHOST_INSTALL}"
 cd ${GHOST_INSTALL}
-su ${user} -c "ghost config --ip 0.0.0.0 --port ${port} --no-prompt --db sqlite3 --url ${url} --dbpath "$GHOST_CONTENT/data/ghost.db""
+su ${user} -c "ghost config --ip 0.0.0.0 --port ${port} --no-prompt --url ${url} --db mysql --dbhost ${dbhost} --dbuser ${dbuser} --dbpass ${dbpass} --dbport ${dbport} --dbname ${dbname}"
 EOF
 
 cat <<EOF > $rootfs/etc/systemd/system/ghost.service
