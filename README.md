@@ -23,15 +23,6 @@ We are provisioning/configuring most everything with Hashicorp's Terraform:
 - Install "PDSH" so you can run commands on multiple hosts at the same time
   ```
   apt-get install -y pdsh
-  export PDSH_SSH_ARGS_APPEND="-i /root/.ssh/id_rsa -oStrictHostKeyChecking=accept-new"
-  ```
-  - e.g. to start a shell connected to all the droplets tagged as "server":
-  ```
-  pdsh -R ssh -l root -w `doctl compute droplet list --format PublicIPv4 --no-header --tag-name server | paste -s -d','`
-  ```
-  - or to list the status of nomad on every node:
-  ```
-  pdsh -R ssh -l root -w `doctl compute droplet list --format PublicIPv4 --no-header --tag-name cluster | paste -s -d','` bash --login -c \"nomad node status\"
   ```
 
 - Other tools
@@ -66,24 +57,12 @@ We are provisioning/configuring most everything with Hashicorp's Terraform:
   - Create infrastructure
   ```
   terraform init
-  terraform apply
+  terraform apply && source /etc/profile.d/poc.sh
   ```
     - Check that everything is working nice
     ```
-    pdsh -R ssh -l root -w `doctl compute droplet list --format PublicIPv4 --no-header --tag-name cluster | paste -s -d','` bash --login -c \"consul members\"
-    pdsh -R ssh -l root -w `doctl compute droplet list --format PublicIPv4 --no-header --tag-name cluster | paste -s -d','` bash --login -c \"nomad status\"
+    pdsh -g cluster systemctl status consul
+    pdsh -g cluster systemctl status nomad
+    pdsh -g client consul members
+    nomad status
     ```
-  - Once everything is working nicely, export one of the cluster's clients as an entrypoint:
-  ```
-  export NOMAD_ADDR="http://`doctl compute droplet list --format Name,PrivateIPv4 --no-header --tag-name client | grep client0 | awk '{print $2;}'`:4646"
-  ```
-  - And deploy the load-balancer
-  After a few seconds, the balancer should have one instance running per client
-  ```
-  nomad run app/traefik.nomad
-  nomad status traefik
-  ```
-  The load-balancer's dashboard will be available on port :8080 of any client, get the URL with:
-  ```
-  echo "http://`doctl compute droplet list --format Name,PublicIPv4 --no-header --tag-name client | grep client0 | awk '{print $2;}'`:8080"
-  ```

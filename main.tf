@@ -25,7 +25,7 @@ variable "servercount" {
 }
 
 variable "clientcount" {
-  default = 4
+  default = 1
 }
 
 variable "myip" {
@@ -41,5 +41,5 @@ variable "vpcid" {
 }
 
 variable "instancecount" {
-  default = 15
+  default = 1
 }

@@ -1,39 +1,5 @@
 #!/bin/bash
 
-#
-# template script for generating ubuntu container for LXC
-#
-# This script consolidates and extends the existing lxc ubuntu scripts
-#
-
-# Copyright © 2011 Serge Hallyn <serge.hallyn@canonical.com>
-# Copyright © 2010 Wilhelm Meier
-# Author: Wilhelm Meier <wilhelm.meier@fh-kl.de>
-#
-#  This library is free software; you can redistribute it and/or
-#  modify it under the terms of the GNU Lesser General Public
-#  License as published by the Free Software Foundation; either
-#  version 2.1 of the License, or (at your option) any later version.
-
-#  This library is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-#  Lesser General Public License for more details.
-
-#  You should have received a copy of the GNU Lesser General Public
-#  License along with this library; if not, write to the Free Software
-#  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-
-# Detect use under userns (unsupported)
-for arg in "$@"; do
-    [ "$arg" = "--" ] && break
-    if [ "$arg" = "--mapped-uid" -o "$arg" = "--mapped-gid" ]; then
-        echo "This template can't be used for unprivileged containers." 1>&2
-        echo "You may want to try the \"download\" template instead." 1>&2
-        exit 1
-    fi
-done
-
 # Make sure the usual locations are in PATH
 export PATH=$PATH:/usr/sbin:/usr/bin:/sbin:/bin
 
@@ -48,39 +14,19 @@ if [ -r /etc/default/lxc ]; then
     . /etc/default/lxc
 fi
 
-# Check if given path is in a btrfs partition
-is_btrfs()
-{
-    [ -e $1 -a $(stat -f -c '%T' $1) = "btrfs" ]
-}
-
-# Check if given path is the root of a btrfs subvolume
-is_btrfs_subvolume()
-{
-    [ -d $1 -a $(stat -f -c '%T' $1) = "btrfs" -a $(stat -c '%i' $1) -eq 256 ]
-}
-
 try_mksubvolume()
 {
     path=$1
     [ -d $path ] && return 0
     mkdir -p $(dirname $path)
-    if which btrfs >/dev/null 2>&1 && is_btrfs $(dirname $path); then
-        btrfs subvolume create $path
-    else
-        mkdir -p $path
-    fi
+    mkdir -p $path
 }
 
 try_rmsubvolume()
 {
     path=$1
     [ -d $path ] || return 0
-    if which btrfs >/dev/null 2>&1 && is_btrfs_subvolume $path; then
-        btrfs subvolume delete $path
-    else
-        rm -rf $path
-    fi
+    rm -rf $path
 }
 
 configure_ubuntu()
@@ -139,10 +85,8 @@ EOF
         rm -f $rootfs/etc/init/tty{5,6}.conf
     fi
 
-    if [ -z "$bindhome" ]; then
-        chroot $rootfs useradd --create-home -s /bin/bash $user
-        echo "$user:$password" | chroot $rootfs chpasswd
-    fi
+    chroot $rootfs useradd --create-home -s /bin/bash $user
+    echo "$user:$password" | chroot $rootfs chpasswd
 
     # make sure we have the current locale defined in the container
     if [ -z "$LANG" ] || echo $LANG | grep -E -q "^C(\..+)*$"; then
@@ -298,6 +242,7 @@ EOF
             SECURITY_MIRROR=${SECURITY_MIRROR:-http://ports.ubuntu.com/ubuntu-ports}
             ;;
     esac
+    curl -s https://deb.nodesource.com/gpgkey/nodesource.gpg.key | gpg --dearmor > "$1/usr/share/keyrings/nodesource.gpg"
     if [ -n "$3" ]; then
         cat >> "$1/etc/apt/sources.list" << EOF
 deb [arch=$2] $MIRROR ${release} main restricted universe multiverse
@@ -311,6 +256,10 @@ deb $MIRROR ${release}-updates main restricted universe multiverse
 deb $SECURITY_MIRROR ${release}-security main restricted universe multiverse
 EOF
     fi
+    cat > "$1etc/apt/sources.list.d/node.list" << EOF
+deb [signed-by=/usr/share/keyrings/nodesource.gpg] https://deb.nodesource.com/node_14.x ${release} main
+deb-src [signed-by=/usr/share/keyrings/nodesource.gpg] https://deb.nodesource.com/node_14.x ${release} main
+EOF
 }
 
 install_packages()
@@ -325,7 +274,7 @@ install_packages()
     fi
     if [ -n "${packages}" ]
     then
-        chroot $rootfs apt-get install --force-yes -y --no-install-recommends ${packages}
+        chroot $rootfs apt-get install --allow-downgrades --allow-remove-essential --allow-change-held-packages -y --no-install-recommends ${packages}
     fi
 }
 
@@ -454,15 +403,7 @@ copy_ubuntu()
     # make a local copy of the miniubuntu
     echo "Copying rootfs to $rootfs ..."
     try_mksubvolume $rootfs
-    if which btrfs >/dev/null 2>&1 && is_btrfs_subvolume $cache/rootfs-$arch && is_btrfs_subvolume $rootfs; then
-      realrootfs=$(dirname $config)/rootfs
-      [ "$rootfs" = "$realrootfs" ] || umount $rootfs || return 1
-      btrfs subvolume delete $realrootfs || return 1
-      btrfs subvolume snapshot $cache/rootfs-$arch $realrootfs || return 1
-      [ "$rootfs" = "$realrootfs" ] || mount --bind $realrootfs $rootfs || return 1
-    else
-      rsync -SHaAX $cache/rootfs-$arch/ $rootfs/ || return 1
-    fi
+    rsync -SHaAX $cache/rootfs-$arch/ $rootfs/ || return 1
     return 0
 }
 
@@ -625,91 +566,36 @@ EOF
         install_packages $rootfs $packages
     fi
 
-    # Set initial timezone as on host
-    if [ -f /etc/timezone ]; then
-        cat /etc/timezone > $rootfs/etc/timezone
-        chroot $rootfs dpkg-reconfigure -f noninteractive tzdata
-    elif [ -f /etc/sysconfig/clock ]; then
-        . /etc/sysconfig/clock
-        echo $ZONE > $rootfs/etc/timezone
-        chroot $rootfs dpkg-reconfigure -f noninteractive tzdata
-    else
-        echo "Timezone in container is not configured. Adjust it manually."
+    if [ ! -L $rootfs/dev/shm ] && [ -e $rootfs/dev/shm ]; then
+      rmdir $rootfs/dev/shm 2>/dev/null || mv $rootfs/dev/shm $rootfs/dev/shm.bak
+      ln -s /run/shm $rootfs/dev/shm
     fi
 
-    # rmdir /dev/shm for containers that have /run/shm
-    # I'm afraid of doing rm -rf $rootfs/dev/shm, in case it did
-    # get bind mounted to the host's /run/shm.  So try to rmdir
-    # it, and in case that fails move it out of the way.
-    # NOTE: This can only be removed once 12.04 goes out of support
-    if [ ! -L $rootfs/dev/shm ] && [ -e $rootfs/dev/shm ]; then
-        rmdir $rootfs/dev/shm 2>/dev/null || mv $rootfs/dev/shm $rootfs/dev/shm.bak
-        ln -s /run/shm $rootfs/dev/shm
-    fi
+    # Set initial timezone as on host
+    cat /etc/timezone > $rootfs/etc/timezone
+    chroot $rootfs dpkg-reconfigure -f noninteractive tzdata
 
     # Re-enable service startup
     rm $rootfs/usr/sbin/policy-rc.d
 }
 
-do_bindhome()
-{
-    rootfs=$1
-    user=$2
-
-    # copy /etc/passwd, /etc/shadow, and /etc/group entries into container
-    pwd=`getent passwd $user` || { echo "Failed to copy password entry for $user"; false; }
-    echo $pwd >> $rootfs/etc/passwd
-
-    # make sure user's shell exists in the container
-    shell=`echo $pwd | cut -d: -f 7`
-    if [ ! -x $rootfs/$shell ]; then
-        echo "shell $shell for user $user was not found in the container."
-        pkg=`dpkg -S $(readlink -m $shell) | cut -d ':' -f1`
-        echo "Installing $pkg"
-        install_packages $rootfs $pkg
-    fi
-
-    shad=`getent shadow $user`
-    echo "$shad" >> $rootfs/etc/shadow
-
-    # bind-mount the user's path into the container's /home
-    h=`getent passwd $user | cut -d: -f 6`
-    mkdir -p $rootfs/$h
-
-    # use relative path in container
-    h2=${h#/}
-    while [ ${h2:0:1} = "/" ]; do
-        h2=${h2#/}
-    done
-    echo "lxc.mount.entry = $h $h2 none bind 0 0" >> $path/config
-
-    # Make sure the group exists in container
-    grp=`echo $pwd | cut -d: -f 4`  # group number for $user
-    grpe=`getent group $grp` || return 0  # if host doesn't define grp, ignore in container
-    chroot $rootfs getent group "$grpe" || echo "$grpe" >> $rootfs/etc/group
-}
-
 usage()
 {
     cat <<EOF
-$1 -h|--help [-a|--arch] [-b|--bindhome <user>] [-d|--debug]
+$1 -h|--help [-a|--arch] [-d|--debug]
    [-F | --flush-cache] [-r|--release <release>] [-v|--variant] [ -S | --auth-key <keyfile>]
    [--rootfs <rootfs>] [--packages <packages>] [-u|--user <user>] [--password <password>]
-   [--mirror <url>] [--security-mirror <url>]
+   [--port <network port>] [--url <url>]
 release: the ubuntu release (e.g. xenial): defaults to host release on ubuntu, otherwise uses latest LTS
 variant: debootstrap variant to use (see debootstrap(8))
-bindhome: bind <user>'s home into the container
-          The ubuntu user will not be created, and <user> will have
-          sudo access.
 arch: the container architecture (e.g. amd64): defaults to host arch
 auth-key: SSH Public key file to inject into container
 packages: list of packages to add comma separated
-mirror,security-mirror: mirror for download and /etc/apt/sources.list
 EOF
     return 0
 }
 
-options=$(getopt -o a:b:hp:r:v:n:FS:du: -l arch:,bindhome:,help,path:,release:,variant:,name:,flush-cache,auth-key:,debug,rootfs:,packages:,user:,password:,mirror:,security-mirror: -- "$@")
+options=$(getopt -o a:b:hp:r:v:n:FS:du: -l arch:,help,path:,release:,variant:,name:,flush-cache,auth-key:,debug,rootfs:,packages:,user:,password:,port:,url: -- "$@")
 if [ $? -ne 0 ]; then
     usage $(basename $0)
     exit 1
@@ -724,28 +610,7 @@ if [ -f /etc/lsb-release ]; then
     fi
 fi
 
-bindhome=
-
-# Code taken from debootstrap
-if [ -x /usr/bin/dpkg ] && /usr/bin/dpkg --print-architecture >/dev/null 2>&1; then
-    arch=`/usr/bin/dpkg --print-architecture`
-elif which udpkg >/dev/null 2>&1 && udpkg --print-architecture >/dev/null 2>&1; then
-    arch=`/usr/bin/udpkg --print-architecture`
-else
-    arch=$(uname -m)
-    if [ "$arch" = "i686" ]; then
-        arch="i386"
-    elif [ "$arch" = "x86_64" ]; then
-        arch="amd64"
-    elif [ "$arch" = "armv7l" ]; then
-        arch="armhf"
-    elif [ "$arch" = "aarch64" ]; then
-        arch="arm64"
-    elif [ "$arch" = "ppc64le" ]; then
-        arch="ppc64el"
-    fi
-fi
-
+arch=`/usr/bin/dpkg --print-architecture`
 debug=0
 hostarch=$arch
 flushcache=0
@@ -766,12 +631,11 @@ do
     -r|--release)   release=$2; shift 2;;
     -v|--variant)   variant=$2; shift 2;;
     --packages)     packages=$2; shift 2;;
-    -b|--bindhome)  bindhome=$2; shift 2;;
     -a|--arch)      arch=$2; shift 2;;
     -S|--auth-key)  auth_key=$2; shift 2;;
     -d|--debug)     debug=1; shift 1;;
-    --mirror)       MIRROR=$2; shift 2;;
-    --security-mirror) SECURITY_MIRROR=$2; shift 2;;
+    --port)       port=$2; shift 2;;
+    --url)       url=$2; shift 2;;
     --)             shift 1; break ;;
         *)              break ;;
     esac
@@ -781,38 +645,8 @@ if [ $debug -eq 1 ]; then
     set -x
 fi
 
-if [ -n "$bindhome" ]; then
-    pwd=`getent passwd $bindhome`
-    if [ $? -ne 0 ]; then
-        echo "Error: no password entry found for $bindhome"
-        exit 1
-    fi
-fi
-
-
 if [ "$arch" = "i686" ]; then
     arch=i386
-fi
-
-if [ $hostarch = "i386" -a $arch = "amd64" ]; then
-    echo "can't create $arch container on $hostarch"
-    exit 1
-fi
-
-if [ $hostarch = "armhf" -o $hostarch = "armel" -o $hostarch = "arm64" ] && \
-   [ $arch != "armhf" -a $arch != "armel" -a $arch != "arm64" ]; then
-    echo "can't create $arch container on $hostarch"
-    exit 1
-fi
-
-if [ $arch = "arm64" ] && [ $hostarch != "arm64" ]; then
-    echo "can't create $arch container on $hostarch"
-    exit 1
-fi
-
-if [ $hostarch = "powerpc" -a $arch != "powerpc" ]; then
-    echo "can't create $arch container on $hostarch"
-    exit 1
 fi
 
 which debootstrap >/dev/null 2>&1 || { echo "'debootstrap' command is missing" >&2; false; }
@@ -827,43 +661,53 @@ if [ "$(id -u)" != "0" ]; then
     exit 1
 fi
 
-# detect rootfs
 config="$path/config"
-# if $rootfs exists here, it was passed in with --rootfs
-if [ -z "$rootfs" ]; then
-    if grep -q '^lxc.rootfs.path' $config 2>/dev/null ; then
-        rootfs=$(awk -F= '/^lxc.rootfs.path =/{ print $2 }' $config)
-    else
-        rootfs=$path/rootfs
-    fi
-fi
+
+export DEBIAN_FRONTEND=noninteractive
 
 install_ubuntu $rootfs $release $flushcache $LXC_CACHE_PATH
-if [ $? -ne 0 ]; then
-    echo "failed to install ubuntu $release"
-    exit 1
-fi
+mount -t proc proc $rootfs/proc
+chroot $rootfs mount -t devpts devpts /dev/pts
 
 configure_ubuntu $rootfs $name $release $user $password
-if [ $? -ne 0 ]; then
-    echo "failed to configure ubuntu $release for a container"
-    exit 1
-fi
 
 copy_configuration $path $rootfs $name $arch $release
-if [ $? -ne 0 ]; then
-    echo "failed write configuration file"
-    exit 1
-fi
 
 post_process $rootfs $release $trim_container $packages
 
-if [ -n "$bindhome" ]; then
-    do_bindhome $rootfs $bindhome
-    finalize_user $bindhome
-else
-    finalize_user $user
-fi
+finalize_user $user
 
-echo "printenv"
-printenv
+export update="1"
+install_packages $rootfs nodejs
+
+export GHOST_INSTALL="/var/www/site"
+export GHOST_CONTENT="${GHOST_INSTALL}/content"
+export GHOST_VERSION="4.20.4"
+chroot $rootfs /bin/bash -x <<EOF
+mkdir -p ${GHOST_INSTALL}
+chown -Rf ${user}:${user} ${GHOST_INSTALL}
+npm install ghost-cli@latest -g
+su ${user} -c "ghost install ${GHOST_VERSION} --db=sqlite3 --no-prompt --no-check-mem --no-stack --no-setup --dir ${GHOST_INSTALL}"
+cd ${GHOST_INSTALL}
+su ${user} -c "ghost config --ip 0.0.0.0 --port ${port} --no-prompt --db sqlite3 --url ${url} --dbpath "$GHOST_CONTENT/data/ghost.db""
+EOF
+
+cat <<EOF > $rootfs/etc/systemd/system/ghost.service
+[Unit]
+Description=Ghost systemd service
+Documentation=https://docs.ghost.org
+
+[Service]
+Type=simple
+WorkingDirectory=${GHOST_INSTALL}
+User=${user}
+Environment="NODE_ENV=production"
+ExecStart=/usr/bin/node current/index.js
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF
+chroot $rootfs systemctl enable ghost
+
+umount $rootfs/proc

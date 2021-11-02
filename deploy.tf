@@ -41,6 +41,7 @@ resource "nomad_job" "test" {
     dbpswd = digitalocean_database_cluster.default.password
     dbname = digitalocean_database_db.test[count.index].name
   })
+  detach = false
 }
 #LXC deployment
 resource "random_integer" "staticport" {
@@ -54,8 +55,7 @@ resource "random_integer" "staticport" {
 }
 resource "nomad_job" "lxc" {
   depends_on = [nomad_job.traefik, null_resource.deploy-prep]
-  count = 1
-  #count = var.instancecount
+  count = var.instancecount
   jobspec = templatefile("app/ghost-lxc.nomad", {
     name = "test${count.index + var.instancecount}"
     httpport = random_integer.staticport[count.index].result
