@@ -5,7 +5,7 @@ region = "${dc}"
 bind_addr = "${addr}"
 server {
   enabled = true
-  bootstrap_expect = ${count}
+  bootstrap_expect = ${size}
 }
 consul {
   address = "${addr}:8500"

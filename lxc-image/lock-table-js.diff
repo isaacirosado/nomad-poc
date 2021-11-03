@@ -1,0 +1,11 @@
+--- node_modules/knex-migrator/migrations/lock-table.js.bkp     2021-11-02 09:46:35.625371303 +0000
++++ node_modules/knex-migrator/migrations/lock-table.js 2021-11-02 09:47:21.417947506 +0000
+@@ -15,7 +15,7 @@
+             }
+
+             return connection.schema.createTable('migrations_lock', function (table) {
+-                table.string('lock_key', 191).nullable(false).primary();
++                table.specificType('lock_key', 'char(64) primary key');
+                 table.boolean('locked').default(0);
+                 table.dateTime('acquired_at').nullable();
+                 table.dateTime('released_at').nullable();

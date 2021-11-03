@@ -1,7 +1,7 @@
 #All the basic stuff to initialize
 terraform {
   backend "local" {
-    path = "/tmp/terraform.tfstate"
+    path = "/root/terraform.tfstate"
   }
   required_providers {
     digitalocean = {
@@ -24,12 +24,8 @@ variable "servercount" {
   default = 3
 }
 
-variable "clientcount" {
-  default = 1
-}
-
-variable "myip" {
-  default = "120.147.138.51"
+variable "size" {
+  default = 4
 }
 
 variable "domain" {
@@ -40,6 +36,6 @@ variable "vpcid" {
   default = "112b5b44-783b-4a7d-ad6e-fb5d86ada5d0"
 }
 
-variable "instancecount" {
-  default = 1
+variable "clients" {
+  default = 10
 }

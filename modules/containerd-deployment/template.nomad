@@ -38,7 +38,7 @@ job "${name}" {
       }
 
       config {
-        image = "ghost:${version}"
+        image = "ghost:4.20.4"
       }
       resources {
         cpu = 200

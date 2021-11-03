@@ -124,7 +124,7 @@ EOF
     return 0
 }
 
-options=$(getopt -o p: -l path:,name:,rootfs:,version:,port:,shortname:,domain:,dbhost:,dbuser:,dbpass:,dbport:,dbname: -- "$@")
+options=$(getopt -o p: -l path:,name:,rootfs:,port:,shortname:,domain:,dbhost:,dbuser:,dbpass:,dbport:,dbname: -- "$@")
 eval set -- "$options"
 
 . /etc/lsb-release
@@ -136,7 +136,6 @@ do
       -p|--path)      path=$2; shift 2;;
       --name) name=$2; shift 2;;
       --rootfs) rootfs=$2; shift 2;;
-      --version) version=$2; shift 2;;
       --port) port=$2; shift 2;;
       --shortname) shortname=$2; shift 2;;
       --domain) domain=$2; shift 2;;
@@ -163,7 +162,7 @@ config="$path/config"
 export DEBIAN_FRONTEND=noninteractive
 
 try_mksubvolume $rootfs
-rsync -SHaAX --no-specials --no-devices /var/lib/lxc/ghost-${version}/rootfs/ $rootfs/
+rsync -SHaAX --no-specials --no-devices $LXC_CACHE_PATH/ghost/rootfs/ $rootfs/
 
 configure_ubuntu $rootfs $name $release
 copy_configuration $path $rootfs $name $arch $release

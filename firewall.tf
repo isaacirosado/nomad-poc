@@ -1,6 +1,6 @@
 resource "digitalocean_firewall" "default" {
   name = "default"
-  droplet_ids = concat(digitalocean_droplet.server.*.id, digitalocean_droplet.client.*.id)
+  tags = ["cluster"]
   #Internal mesh
   inbound_rule {
     protocol = "tcp"
