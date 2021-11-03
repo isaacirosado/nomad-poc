@@ -203,28 +203,34 @@ cat <<EOF > ${rootfs}${GHOST_INSTALL}/config.production.json
 }
 EOF
 
-cat <<EOF > $rootfs/root/register-consul.sh
+cat <<EOF > $rootfs/root/consul-crud.sh
 #!/bin/bash
-set -e
+set -xe
 
 export ADDR=\`/usr/sbin/ip -4 -br addr show dev eth0 | /usr/bin/awk '{print \$3}'\`
 export CONSUL_HTTP_ADDR="http://\`/usr/bin/python3 -c "import ipaddress; print(ipaddress.IPv4Interface('\${ADDR}').network[1]);"\`:8500"
-/usr/bin/consul services register -address=\`hostname -I\` -port=${port} -name=${shortname} -tag="traefik.enable=true" -tag="traefik.http.routers.again1.rule=Host(\\\`${shortname}.${domain}\\\`)"
+if [[ "\${1}" = "del" ]]; then
+  /usr/bin/consul services deregister -id=${shortname}
+else
+  /usr/bin/consul services register -address=\`hostname -I\` -port=${port} -name=${shortname} -tag="traefik.enable=true" -tag="traefik.http.routers.${shortname}.rule=Host(\\\`${shortname}.${domain}\\\`)"
+fi
 EOF
-chmod +x $rootfs/root/register-consul.sh
+chmod +x $rootfs/root/consul-crud.sh
 
-cat <<EOF > $rootfs/etc/systemd/system/register-consul.service
+cat <<EOF > $rootfs/etc/systemd/system/consul-crud.service
 [Unit]
 Description=Register service in Consul
-Wants=network-online.target
+Requires=network-online.target
 After=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=/root/register-consul.sh
+RemainAfterExit=yes
+ExecStart=/root/consul-crud.sh add
+ExecStop=/root/consul-crud.sh del
 
 [Install]
 WantedBy=multi-user.target
 EOF
-chroot $rootfs systemctl enable register-consul
+chroot $rootfs systemctl enable consul-crud
 

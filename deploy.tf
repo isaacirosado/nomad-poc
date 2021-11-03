@@ -28,7 +28,7 @@ resource "digitalocean_database_db" "test" {
  name = "test${count.index}"
 }
 #Containerd deployment
-resource "nomad_job" "test" {
+resource "nomad_job" "containerd" {
   count = var.instancecount
   depends_on = [nomad_job.traefik]
   jobspec = templatefile("app/ghost-containerd.nomad", {
@@ -59,7 +59,7 @@ resource "nomad_job" "lxc" {
   depends_on = [nomad_job.traefik, null_resource.deploy-prep]
   count = var.instancecount
   jobspec = templatefile("app/ghost-lxc.nomad", {
-    name = "again${count.index + var.instancecount}"
+    name = "test${count.index + var.instancecount}"
     version = "4.20.4"
     httpport = random_integer.staticport[count.index].result
     region = var.region
