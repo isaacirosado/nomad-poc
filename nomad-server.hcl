@@ -8,5 +8,5 @@ server {
   bootstrap_expect = ${count}
 }
 consul {
-  address = "127.0.0.1:8500"
+  address = "${addr}:8500"
 }

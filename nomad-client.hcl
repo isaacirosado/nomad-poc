@@ -9,7 +9,7 @@ client {
   network_interface = "eth1"
 }
 consul {
-  address = "127.0.0.1:8500"
+  address = "${addr}:8500"
 }
 plugin "containerd-driver" {
   config {

@@ -14,11 +14,6 @@ job "${name}" {
     service {
       name = "${name}"
       port = "http"
-
-      tags = [
-        "traefik.enable=true",
-        "traefik.http.routers.${name}.rule=Host(`${name}.${domain}`)"
-      ]
     }
 
     task "${name}" {
@@ -30,13 +25,13 @@ job "${name}" {
         template = "/opt/nomad/data/lxc-template-cp"
         template_args = [
           "--version=${version}",
-          "--port=${httpport}", "--url=http://${name}.${domain}",
+          "--port=${httpport}", "--shortname=${name}", "--domain=${domain}",
           "--dbhost=${dbhost}", "--dbuser=${dbuser}", "--dbpass=${dbpswd}", "--dbport=${dbport}", "--dbname=${dbname}"
         ]
       }
 
       resources {
-        cpu = 100
+        cpu = 200
         memory = 384
       }
     }

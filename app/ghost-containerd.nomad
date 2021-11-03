@@ -41,7 +41,7 @@ job "${name}" {
         image = "ghost:${version}"
       }
       resources {
-        cpu = 100
+        cpu = 200
         memory = 384
       }
     }

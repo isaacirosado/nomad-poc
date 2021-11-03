@@ -48,11 +48,9 @@ iface eth0 inet dhcp
 EOF
     fi
 
-    # set the hostname
     cat <<EOF > $rootfs/etc/hostname
 $hostname
 EOF
-    # set minimal hosts
     cat <<EOF > $rootfs/etc/hosts
 127.0.0.1   localhost
 127.0.1.1   $hostname
@@ -126,7 +124,7 @@ EOF
     return 0
 }
 
-options=$(getopt -o p: -l path:,name:,rootfs:,version:,port:,url:,dbhost:,dbuser:,dbpass:,dbport:,dbname: -- "$@")
+options=$(getopt -o p: -l path:,name:,rootfs:,version:,port:,shortname:,domain:,dbhost:,dbuser:,dbpass:,dbport:,dbname: -- "$@")
 eval set -- "$options"
 
 . /etc/lsb-release
@@ -140,7 +138,8 @@ do
       --rootfs) rootfs=$2; shift 2;;
       --version) version=$2; shift 2;;
       --port) port=$2; shift 2;;
-      --url) url=$2; shift 2;;
+      --shortname) shortname=$2; shift 2;;
+      --domain) domain=$2; shift 2;;
       --dbhost) dbhost=$2; shift 2;;
       --dbuser) dbuser=$2; shift 2;;
       --dbpass) dbpass=$2; shift 2;;
@@ -173,7 +172,7 @@ export GHOST_INSTALL="/var/www/site"
 
 cat <<EOF > ${rootfs}${GHOST_INSTALL}/config.production.json
 {
-  "url": "${url}",
+  "url": "http://${shortname}.${domain}",
   "server": {
     "port": ${port},
     "host": "0.0.0.0"
@@ -203,3 +202,29 @@ cat <<EOF > ${rootfs}${GHOST_INSTALL}/config.production.json
   }
 }
 EOF
+
+cat <<EOF > $rootfs/root/register-consul.sh
+#!/bin/bash
+set -e
+
+export ADDR=\`/usr/sbin/ip -4 -br addr show dev eth0 | /usr/bin/awk '{print \$3}'\`
+export CONSUL_HTTP_ADDR="http://\`/usr/bin/python3 -c "import ipaddress; print(ipaddress.IPv4Interface('\${ADDR}').network[1]);"\`:8500"
+/usr/bin/consul services register -address=\`hostname -I\` -port=${port} -name=${shortname} -tag="traefik.enable=true" -tag="traefik.http.routers.again1.rule=Host(\\\`${shortname}.${domain}\\\`)"
+EOF
+chmod +x $rootfs/root/register-consul.sh
+
+cat <<EOF > $rootfs/etc/systemd/system/register-consul.service
+[Unit]
+Description=Register service in Consul
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/root/register-consul.sh
+
+[Install]
+WantedBy=multi-user.target
+EOF
+chroot $rootfs systemctl enable register-consul
+

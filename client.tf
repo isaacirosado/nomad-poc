@@ -60,7 +60,6 @@ resource "null_resource" "consul-client" {
     }
     content = templatefile("consul-client.hcl", {
       dc = digitalocean_droplet.client[count.index].region
-      addr = digitalocean_droplet.client[count.index].ipv4_address_private
       token = var.do_token
     })
     destination = "/etc/consul.d/consul.hcl"

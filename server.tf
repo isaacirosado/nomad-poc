@@ -60,7 +60,6 @@ resource "null_resource" "consul-server" {
     }
     content = templatefile("consul-server.hcl", {
       dc = var.region
-      addr = digitalocean_droplet.server[count.index].ipv4_address_private
       count = var.servercount
       token = var.do_token
     })
