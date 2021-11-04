@@ -124,7 +124,7 @@ EOF
     return 0
 }
 
-options=$(getopt -o p: -l path:,name:,rootfs:,port:,shortname:,domain:,dbhost:,dbuser:,dbpass:,dbport:,dbname: -- "$@")
+options=$(getopt -o p: -l path:,name:,rootfs:,shortname:,domain:,dbhost:,dbuser:,dbpass:,dbport:,dbname: -- "$@")
 eval set -- "$options"
 
 . /etc/lsb-release
@@ -136,7 +136,6 @@ do
       -p|--path)      path=$2; shift 2;;
       --name) name=$2; shift 2;;
       --rootfs) rootfs=$2; shift 2;;
-      --port) port=$2; shift 2;;
       --shortname) shortname=$2; shift 2;;
       --domain) domain=$2; shift 2;;
       --dbhost) dbhost=$2; shift 2;;
@@ -173,7 +172,7 @@ cat <<EOF > ${rootfs}${GHOST_INSTALL}/config.production.json
 {
   "url": "http://${shortname}.${domain}",
   "server": {
-    "port": ${port},
+    "port": "2368",
     "host": "0.0.0.0"
   },
   "database": {
@@ -201,35 +200,4 @@ cat <<EOF > ${rootfs}${GHOST_INSTALL}/config.production.json
   }
 }
 EOF
-
-cat <<EOF > $rootfs/root/consul-crud.sh
-#!/bin/bash
-set -xe
-
-export ADDR=\`/usr/sbin/ip -4 -br addr show dev eth0 | /usr/bin/awk '{print \$3}'\`
-export CONSUL_HTTP_ADDR="http://\`/usr/bin/python3 -c "import ipaddress; print(ipaddress.IPv4Interface('\${ADDR}').network[1]);"\`:8500"
-if [[ "\${1}" = "del" ]]; then
-  /usr/bin/consul services deregister -id=${shortname}
-else
-  /usr/bin/consul services register -address=\`hostname -I\` -port=${port} -name=${shortname} -tag="traefik.enable=true" -tag="traefik.http.routers.${shortname}.rule=Host(\\\`${shortname}.${domain}\\\`)"
-fi
-EOF
-chmod +x $rootfs/root/consul-crud.sh
-
-cat <<EOF > $rootfs/etc/systemd/system/consul-crud.service
-[Unit]
-Description=Register service in Consul
-Requires=network-online.target
-After=network-online.target
-
-[Service]
-Type=oneshot
-RemainAfterExit=yes
-ExecStart=/root/consul-crud.sh add
-ExecStop=/root/consul-crud.sh del
-
-[Install]
-WantedBy=multi-user.target
-EOF
-chroot $rootfs systemctl enable consul-crud
 

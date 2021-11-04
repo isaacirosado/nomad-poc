@@ -25,7 +25,7 @@ variable "servercount" {
 }
 
 variable "size" {
-  default = 4
+  default = 2
 }
 
 variable "domain" {

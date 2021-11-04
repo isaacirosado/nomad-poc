@@ -18,7 +18,6 @@ variable "dbcluster" {
     password = string
   })
 }
-variable "port" {}
 
 resource "digitalocean_database_db" "main" {
  cluster_id = var.dbcluster.id
@@ -27,7 +26,6 @@ resource "digitalocean_database_db" "main" {
 resource "nomad_job" "main" {
   jobspec = templatefile("${path.module}/template.nomad", {
     name = var.name
-    httpport = var.port
     region = var.region
     domain = var.domain
     dbhost = var.dbcluster.private_host

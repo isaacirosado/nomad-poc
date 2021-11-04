@@ -23,24 +23,27 @@ module "containerd-deployment" {
   count = var.clients
   source = "./modules/containerd-deployment"
   dbcluster = digitalocean_database_cluster.default
-  name = "test${count.index}"
+  name = "crd${count.index}"
   region = var.region
   domain = var.domain
 }
 
 
-resource "random_integer" "port" {
-  count = var.clients
-  min = 17000
-  max = 19999
-}
 module "lxc-deployment" {
   depends_on = [null_resource.lxc-image-update]
   count = var.clients
   source = "./modules/lxc-deployment"
   dbcluster = digitalocean_database_cluster.default
-  name = "test${count.index + var.clients}"
+  name = "lxc${count.index}"
   region = var.region
   domain = var.domain
-  port = random_integer.port[count.index].result
+}
+resource "null_resource" "lxc-iptables-discovery" {
+  depends_on = [module.lxc-deployment]
+  triggers = {
+    files = sha1("./modules/lxc-deployment/iptables.sh")
+  }
+  provisioner "local-exec" {
+    command = "./modules/lxc-deployment/iptables.sh"
+  }
 }
