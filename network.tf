@@ -19,12 +19,6 @@ resource "digitalocean_loadbalancer" "public" {
     target_port = 80
   }
   forwarding_rule {
-    entry_protocol = "http"
-    entry_port = 8080
-    target_protocol = "http"
-    target_port = 8080
-  }
-  forwarding_rule {
     entry_protocol = "https"
     entry_port = 443
     target_protocol = "http"

@@ -19,6 +19,7 @@ resource "nomad_job" "traefik" {
   depends_on = [null_resource.local-prep]
   jobspec = templatefile("traefik.nomad", {
     region = var.region
+    domain = var.domain
   })
 }
 
