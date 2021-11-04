@@ -1,4 +1,10 @@
 #!/usr/bin/env node
+/*
+Very crude app showing how we can use the same Terraform template, and given some inputs,
+Inputs which we should probably put in Vaul so both the app and the provisioning system can read them,
+Connects to Nomad's API and creates a new deployment
+*/
+
 const fs = require('fs')
 const Hostel = require('@chatsight/hostel')
 
@@ -30,10 +36,10 @@ async function main() {
   await nomadAPI.jobs.parse({
     JobHCL: template,
     Canonicalize: true
-  }).then(async k => {
-    console.log(k[1])
+  }).then(async jsonObj => {
+    console.log(jsonObj[1])
     await nomadAPI.jobs.create({
-      Job: k[1]
+      Job: jsonObj[1]
     }).then(l => {
       console.log(l)
     })
