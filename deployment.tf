@@ -28,7 +28,7 @@ module "containerd-deployment" {
   count = var.clients
   source = "./modules/containerd-deployment"
   dbcluster = digitalocean_database_cluster.default
-  name = "crd${count.index}"
+  name = "ctr${count.index}"
   region = var.region
   domain = var.domain
 }
