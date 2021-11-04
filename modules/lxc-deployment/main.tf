@@ -35,4 +35,5 @@ resource "nomad_job" "main" {
     dbname = digitalocean_database_db.main.name
   })
   purge_on_destroy = true
+  detach = false
 }

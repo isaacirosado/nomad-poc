@@ -1,3 +1,5 @@
+#Setup both Consul and Nomad
+
 module "cluster-server" {
   count = var.servercount
   source = "./modules/cluster-server"

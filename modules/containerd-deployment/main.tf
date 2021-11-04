@@ -1,3 +1,4 @@
+#Simply create a DB and deploy an instance
 terraform {
   required_providers {
     digitalocean = {
@@ -34,5 +35,6 @@ resource "nomad_job" "main" {
     dbpswd = var.dbcluster.password
     dbname = digitalocean_database_db.main.name
   })
+  purge_on_destroy = true
   detach = false
 }

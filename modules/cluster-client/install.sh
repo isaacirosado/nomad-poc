@@ -1,4 +1,5 @@
 #!/bin/bash
+#Initialize operating system
 set -e
 set -o errexit
 set -o nounset

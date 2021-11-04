@@ -1,3 +1,4 @@
+#Need a wildcard cert created in the portal and then import here
 resource "digitalocean_certificate" "wildcard" {
   name = "rosado-live-wildcard"
   type = "lets_encrypt"
@@ -7,6 +8,7 @@ resource "digitalocean_certificate" "wildcard" {
   }
 }
 
+#Publicly-available endpoint
 resource "digitalocean_loadbalancer" "public" {
   name = "loadbalancer"
   region = var.region
@@ -29,6 +31,7 @@ resource "digitalocean_loadbalancer" "public" {
     target_port = 80
     certificate_name = digitalocean_certificate.wildcard.name
   }
+  #There should be one "traefik" instances on each droplet tagges as "client"
   healthcheck {
     protocol = "http"
     port = 8080

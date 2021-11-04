@@ -1,4 +1,6 @@
 #!/bin/bash
+# This is the actual LXC template executed by Nomad's LXC plugin implementation
+# It makes a copy of the locally-cached image and creates the last bit of configurations
 set -x
 
 # Make sure the usual locations are in PATH

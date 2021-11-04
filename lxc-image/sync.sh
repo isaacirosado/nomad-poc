@@ -1,7 +1,6 @@
 #!/bin/bash
+#Transfer LXC image cache to one (after creation) or all cluster clients (when image is updated locally)
 set -xe
-
-#Transfer LXC image cache to one or all cluster clients
 
 source /etc/profile.d/poc.sh
 function transfer() {

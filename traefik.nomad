@@ -1,7 +1,7 @@
 job "traefik" {
   region = "${region}"
   datacenters = ["${region}"]
-  type = "system"
+  type = "system" #guarantee an even count on each droplet
 
   group "traefik" {
     count = 1

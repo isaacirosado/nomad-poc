@@ -1,7 +1,7 @@
+#Create an "internal/trusted" mesh
 resource "digitalocean_firewall" "default" {
   name = "default"
   tags = ["cluster"]
-  #Internal mesh
   inbound_rule {
     protocol = "tcp"
     port_range = "all"

@@ -1,4 +1,5 @@
 #!/bin/bash
+#Installs the CNI plugin on each client (needed for the containerd integration)
 set -e
 
 curl -L -o cni-plugins.tgz "https://github.com/containernetworking/plugins/releases/download/v1.0.0/cni-plugins-linux-$( [ $(uname -m) = aarch64 ] && echo arm64 || echo amd64)"-v1.0.0.tgz

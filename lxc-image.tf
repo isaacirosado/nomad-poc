@@ -1,3 +1,4 @@
+#Build an LXC image locally and cache it on each cluster's client node
 resource "null_resource" "lxc-image-update" {
   depends_on = [null_resource.local-prep]
   triggers = {

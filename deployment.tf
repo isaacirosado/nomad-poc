@@ -1,3 +1,6 @@
+#A bit of a "the chicken and the egg" situation
+#"local-prep" updates local variables need by the "nomad" provider
+
 resource "null_resource" "local-prep" {
   depends_on = [module.cluster-client]
   triggers = {
@@ -19,6 +22,7 @@ resource "nomad_job" "traefik" {
   })
 }
 
+#As an example, deploy an even number of "client" instances with both docker-image and LXC-image
 module "containerd-deployment" {
   count = var.clients
   source = "./modules/containerd-deployment"
@@ -27,8 +31,6 @@ module "containerd-deployment" {
   region = var.region
   domain = var.domain
 }
-
-
 module "lxc-deployment" {
   depends_on = [null_resource.lxc-image-update]
   count = var.clients
@@ -37,13 +39,4 @@ module "lxc-deployment" {
   name = "lxc${count.index}"
   region = var.region
   domain = var.domain
-}
-resource "null_resource" "lxc-iptables-discovery" {
-  depends_on = [module.lxc-deployment]
-  triggers = {
-    files = sha1("./modules/lxc-deployment/iptables.sh")
-  }
-  provisioner "local-exec" {
-    command = "./modules/lxc-deployment/iptables.sh"
-  }
 }

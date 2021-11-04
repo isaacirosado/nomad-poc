@@ -1,4 +1,5 @@
 #!/bin/bash
+#Ensure services are up and running
 set -e
 
 systemctl enable nomad

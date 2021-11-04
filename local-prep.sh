@@ -1,4 +1,5 @@
 #!/bin/bash
+# Local setup for cluster operations
 set -e
 set -o errexit
 set -o nounset
@@ -6,15 +7,24 @@ set -o pipefail
 
 apt-get install -y nomad=1.1.6 consul pdsh
 
-#Update local resolution to ease up on operations
-cat etc-hosts > /etc/hosts
+#In lieu of proper DNS, use local resolution to find nodes by shortname
+cat <<EOF> /etc/hosts
+127.0.1.1 isaac-rosado isaac-rosado
+127.0.0.1 localhost
+
+::1 ip6-localhost ip6-loopback
+fe00::0 ip6-localnet
+ff00::0 ip6-mcastprefix
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters
+ff02::3 ip6-allhosts
+
+#PoC
+EOF
+doctl compute droplet list --format PublicIPv4,Name --no-header --tag-name=cluster >> /etc/hosts
 truncate -s0 /root/.ssh/known_hosts
 
-echo "" >> /etc/hosts
-echo "#POC" >> /etc/hosts
-doctl compute droplet list --format PublicIPv4,Name --no-header --tag-name=cluster >> /etc/hosts
-
-#Set vars
+#Set ENV vars to find cluster services
 cat <<EOF>/etc/profile.d/poc.sh
 export PDSH_SSH_ARGS_APPEND="-i /root/.ssh/id_rsa -oStrictHostKeyChecking=no"
 export PDSH_RCMD_TYPE="ssh"
@@ -24,5 +34,5 @@ export CONSUL_HTTP_ADDR="http://`doctl compute droplet list --format Name,Privat
 EOF
 source /etc/profile.d/poc.sh
 
-#Update local groups to match DO's tags
+#Update local groups to match DO's tags so we can target by groups
 doctl compute droplet list --format Name,Tags --no-header --tag-name=cluster > /etc/genders

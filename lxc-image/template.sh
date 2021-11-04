@@ -1,4 +1,8 @@
 #!/bin/bash
+# This is a simplified Ubuntu LXC template to create a cached image on each node
+# Includes a patch to use Digital Ocean's managed SQL cluster
+# It should leave a clean Ghost install (without any configuration)
+set -x
 
 # Make sure the usual locations are in PATH
 export PATH=$PATH:/usr/sbin:/usr/bin:/sbin:/bin
