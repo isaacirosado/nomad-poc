@@ -1,0 +1,16 @@
+{
+  "name": "cli",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "dependencies": {
+    "@chatsight/hostel": "1.0.3"
+  },
+  "devDependencies": {},
+  "scripts": {},
+  "author": "",
+  "license": "ISC",
+  "bin": {
+    "cli": "./main.js"
+  }
+}

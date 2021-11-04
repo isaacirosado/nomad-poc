@@ -17,3 +17,7 @@ override.tf.json
 
 # Ignore tmp files
 myip.txt
+
+
+#node
+node_modules
