@@ -32,6 +32,10 @@ export TF_VAR_do_token="`grep -e "access-token" /root/.config/doctl/config.yaml 
 export NOMAD_ADDR="http://`doctl compute droplet list --format Name,PrivateIPv4 --no-header --tag-name client | grep client0 | head -n1 | awk '{print $2;}'`:4646"
 export NOMAD_TOKEN=""
 export CONSUL_HTTP_ADDR="http://`doctl compute droplet list --format Name,PrivateIPv4 --no-header --tag-name client | grep client0 | head -n1 | awk '{print $2;}'`:8500"
+
+if [[ -d ~/nomad-poc ]]; then
+  cd ~/nomad-poc
+fi
 EOF
 source /etc/profile.d/poc.sh
 
