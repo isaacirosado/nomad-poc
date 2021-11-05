@@ -22,7 +22,7 @@ job "${name}" {
       driver = "lxc"
 
       config {
-        log_level = "trace"
+        log_level = "warn"
         verbosity = "verbose"
         template = "/opt/nomad/data/lxc-template.sh"
         template_args = [
