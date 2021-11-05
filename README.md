@@ -28,6 +28,7 @@ We are provisioning/configuring most everything with Hashicorp's Terraform:
 - Other tools
   - "nomad" (as a client to manage deployments), make sure to use the same version as the cluster
   - "dig" for DNS queries
+  The deployment will execute "local-prep.sh", that script will install these tools and set up ENV variables
 
 ## Deployment
 
@@ -81,10 +82,3 @@ We are provisioning/configuring most everything with Hashicorp's Terraform:
   ```
   terraform destroy --auto-approve -target="module.containerd-deployment" -target="module.lxc-deployment" && terraform destroy -target="module.cluster-client" -target="module.cluster-server" --auto-approve
   ```
-
-- Issues with LXC
-  Deployments are auto-discovered and exposed via Traefik, you can see the list here: http://rosado.live:8080/dashboard/#/http/routers
-  Unfortunately LXC is not supported in bridge mode, and using "host" node is a can of worms (network services from within each container access the host's network, it is quite the joy ride trying to manage that securily).
-  According to https://www.nomadproject.io/docs/drivers/external/lxc#networking there's no support for bridge/network, which is quite the bummer, however upon close inspection of the code, we can see that it actually uses LXC's default bridge network (https://github.com/hashicorp/nomad-driver-lxc/blob/790464c811025e2aa576b55440601979e2775522/lxc/lxc.go#L91), it is just NOT routing ports in between targets (something that is managed for containerd and docker -based deployments).
-  Per the above, we can deploy LXC images and use the dynamic discovery, but then we have to manually apply DNAT rules so traefik can reach the service inside the container linked to lxcbr0 when trying to hit the local eth1 network
-  For that, run the "" script after every deployment (in this PoC the script causes a down-time of a few milliseconds, in production we would need to figure out a way to update the plugin's code, or deploy an "exec" service that would watch the allocation, as this approach won't survive through operations like balancing, draining, etc)
