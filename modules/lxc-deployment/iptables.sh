@@ -1,7 +1,7 @@
 #!/bin/bash
 #Manually update DNAT rules so Traefik can find the LXC running instance (which lives in the bridged "lxcbr0" interface)
 #We use Consul's API to extract the port and address Traefik knows about
-set -e
+set -xe
 set -o errexit
 set -o nounset
 set -o pipefail

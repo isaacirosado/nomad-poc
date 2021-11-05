@@ -31,8 +31,8 @@ job "traefik" {
       }
 
       resources {
-        cpu = 400
-        memory = 448
+        cpu = 600
+        memory = 512
       }
     }
   }

@@ -1,6 +1,6 @@
 #!/bin/bash
 # Example of manual service registrations to Consul with proper tagging so the load-balancer will pick them up
-set -e
+set -xe
 set -o errexit
 set -o nounset
 set -o pipefail

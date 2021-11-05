@@ -41,3 +41,14 @@ module "lxc-deployment" {
   region = var.region
   domain = var.domain
 }
+resource "null_resource" "lxc-deployment-iptables" {
+  depends_on = [module.lxc-deployment]
+  triggers = {
+    count = var.clients
+    script = sha1(file("./modules/lxc-deployment/iptables.sh"))
+  }
+  provisioner "local-exec" {
+    command = "./iptables.sh"
+    working_dir = "./modules/lxc-deployment"
+  }
+}

@@ -1,5 +1,5 @@
-log_level = "DEBUG"
 enable_syslog = true
+log_level = "warn"
 data_dir = "/opt/nomad"
 datacenter = "${dc}"
 region = "${dc}"

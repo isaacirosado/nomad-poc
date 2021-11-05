@@ -191,8 +191,8 @@ cat <<EOF > ${rootfs}${GHOST_INSTALL}/config.production.json
     "transport": "Direct"
   },
   "logging": {
+    "level": "error",
     "transports": [
-      "file",
       "stdout"
     ]
   },

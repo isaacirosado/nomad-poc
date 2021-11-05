@@ -1,4 +1,5 @@
 enable_syslog = true
+log_level = "warn"
 datacenter = "${dc}"
 data_dir = "/opt/consul"
 server = false

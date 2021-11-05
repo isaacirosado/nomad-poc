@@ -35,6 +35,7 @@ job "${name}" {
         database___connection__user = "${dbuser}"
         database___connection__password = "${dbpswd}"
         database___connection__database = "${dbname}"
+        logging__level = "error"
       }
 
       config {

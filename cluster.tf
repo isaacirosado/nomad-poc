@@ -18,3 +18,14 @@ module "cluster-client" {
   region = var.region
   do_token = var.do_token
 }
+
+resource "null_resource" "expose-dashboards" {
+  depends_on = [module.cluster-client]
+  triggers = {
+    count = var.size
+    script = sha1(file("./expose-dashboards.sh"))
+  }
+  provisioner "local-exec" {
+    command = "./expose-dashboards.sh"
+  }
+}

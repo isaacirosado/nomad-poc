@@ -61,28 +61,28 @@ We are provisioning/configuring most everything with Hashicorp's Terraform:
 - Deploy
   - Baseline
   ```
-  terraform init
+terraform init
   ```
   Create the database and go to the DO dashboard and change the admin user's encryption to "Legacy – MySQL 5.x" (TODO: Upgrade LXC client)
   ```
-  terraform apply -target="digitalocean_database_cluster.default" --auto-approve
+terraform apply -target="digitalocean_database_cluster.default" --auto-approve
   ```
   Repeat the following command (it is idempotent) as many times as necessary (in case package repos time out or DO's API enforces a rate-limit)
   ```
-  terraform apply -target="null_resource.local-prep" --auto-approve && ./local-prep.sh && source /etc/profile.d/poc.sh
+terraform apply -target="null_resource.local-prep" --auto-approve && ./local-prep.sh && source /etc/profile.d/poc.sh
   ```
   If everything went well, running `nomad status` should succeed and say "No running jobs", now you can finish the rest of the deployment:
   ```
-  terraform apply --auto-approve
+terraform apply --auto-approve
   ```
     - Check that everything is working nice using PDSH to run commands in groups/parallel
     ```
-    pdsh -g cluster systemctl status consul
-    pdsh -g cluster systemctl status nomad
-    pdsh -g client consul members
-    nomad status
+pdsh -g cluster systemctl status consul
+pdsh -g cluster systemctl status nomad
+pdsh -g client consul members
+nomad status
     ```
   - From day-to-day, destroy the cluster to save some money:
   ```
-  terraform destroy --auto-approve -target="module.containerd-deployment" -target="module.lxc-deployment" && terraform destroy -target="module.cluster-client" -target="module.cluster-server" --auto-approve
+terraform destroy --auto-approve -target="module.containerd-deployment" -target="module.lxc-deployment" && terraform destroy -target="module.cluster-client" -target="module.cluster-server" --auto-approve
   ```
