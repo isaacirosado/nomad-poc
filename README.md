@@ -1,5 +1,9 @@
 # nomad-poc
 
+## Goal
+The goal of this deployment is to have a working PoC infrastructure system to test Nomad/Consul/Traefik/containers deployments:
+![Alt text](img/architecture.png?raw=true "Architecture")
+
 ## Basic requirements
 
 This provisioning system is based on using Digital Ocean from an Linux server:
