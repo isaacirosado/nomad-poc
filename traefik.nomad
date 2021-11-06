@@ -46,9 +46,9 @@ job "traefik" {
           "--providers.consul.endpoints=127.0.0.1:8500",
           "--providers.consulcatalog.endpoint.scheme=http", "--providers.consulcatalog.exposedByDefault=false"
         ]
-        #sysctl = {
-        #  "fs.file-max" = "16384"
-        #}
+        cap_add = [
+          "CAP_SYS_RESOURCE"
+        ]
       }
 
       resources {

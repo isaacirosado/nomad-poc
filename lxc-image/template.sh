@@ -480,7 +480,7 @@ post_process $rootfs $release
 finalize_user $user
 
 export update="1"
-install_packages $rootfs nodejs consul
+install_packages $rootfs nodejs consul lsof
 
 export GHOST_INSTALL="/var/www/site"
 export GHOST_CONTENT="${GHOST_INSTALL}/content"
