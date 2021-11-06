@@ -9,5 +9,4 @@ consul services register -port=4646 -name=nomad-dashboard -tag="traefik.enable=t
 
 consul services register -port=8500 -name=consul-dashboard -tag="traefik.enable=true" -tag='traefik.http.routers.consul-dashboard.rule=Host(`consul.rosado.live`)' -tag="traefik.http.routers.consul-dashboard.middlewares=auth" -tag='traefik.http.middlewares.auth.basicauth.users=ghost:$apr1$x7.AV8Ov$sUu7JOkV9yoKIXkI3biBq.'
 
-nomad status traefik | grep -E "run\s*running" | awk '{ print $1; }' | xargs -rIALLOC nomad alloc exec ALLOC sh -c 'ulimit -n16384; ulimit -n'
-
+#nomad status traefik | grep -E "run\s*running" | awk '{ print $1; }' | xargs -rIALLOC nomad alloc exec ALLOC sh -c 'ulimit -n16384; ulimit -n'

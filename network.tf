@@ -27,9 +27,8 @@ resource "digitalocean_loadbalancer" "public" {
   }
   #There should be one "traefik" instances on each droplet tagges as "client"
   healthcheck {
-    protocol = "http"
-    port = 8080
-    path = "/ping"
+    protocol = "tcp"
+    port = 80
   }
   droplet_tag = "client"
   lifecycle {
