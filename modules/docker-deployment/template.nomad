@@ -26,7 +26,7 @@ job "${name}" {
     }
 
     task "${name}" {
-      driver = "containerd-driver"
+      driver = "docker"
       env {
         url = "http://${name}.${domain}"
         database___client = "mysql"

@@ -18,20 +18,16 @@ job "traefik" {
     }
 
     task "traefik" {
-      driver = "containerd-driver"
+      driver = "docker"
       config {
         image = "traefik:v2.5"
-        host_network = true
-        privileged = true
+        network_mode = "host"
         args = [
-          "--entryPoints.web.address=:80",
+          "--entryPoints.web.address=:80", "--ping=true",
           "--api=true", "--api.dashboard=true",
           "--providers.consul.endpoints=127.0.0.1:8500",
           "--providers.consulcatalog.endpoint.scheme=http", "--providers.consulcatalog.exposedByDefault=false",
 	  "--accesslog=true"
-        ]
-        cap_add = [
-          "CAP_SYS_RESOURCE"
         ]
       }
 

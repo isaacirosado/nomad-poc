@@ -23,7 +23,7 @@ async function main() {
   })
   await nomadAPI.initialize()
 
-  var data = await fs.readFileSync("../../modules/containerd-deployment/template.nomad","utf8").toString()
+  var data = await fs.readFileSync("../../modules/docker-deployment/template.nomad","utf8").toString()
   var template = data.replace(/\${name}/g, "cli")
 		.replace(/\${region}/g, "lon1")
 		.replace(/\${domain}/g, "rosado.live")

@@ -24,11 +24,11 @@ resource "nomad_job" "traefik" {
 }
 
 #As an example, deploy an even number of "client" instances with both docker-image and LXC-image
-module "containerd-deployment" {
+module "docker-deployment" {
   count = var.clients
-  source = "./modules/containerd-deployment"
+  source = "./modules/docker-deployment"
   dbcluster = digitalocean_database_cluster.default
-  name = "ctr${count.index}"
+  name = "dkr${count.index}"
   region = var.region
   domain = var.domain
 }

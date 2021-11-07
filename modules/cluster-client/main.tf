@@ -97,15 +97,6 @@ resource "null_resource" "nomad-plugins" {
   depends_on = [null_resource.nomad-main]
   triggers = {
     lxc = sha1(filebase64("/root/bin/nomad-driver-lxc"))
-    containerd = sha1(filebase64("/root/bin/containerd-driver"))
-  }
-  provisioner "file" {
-    connection {
-      host = digitalocean_droplet.main.ipv4_address
-      private_key = file("/root/.ssh/id_rsa")
-    }
-    source = "/root/bin/containerd-driver"
-    destination = "/opt/nomad/plugins/containerd-driver"
   }
   provisioner "file" {
     connection {

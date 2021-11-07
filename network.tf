@@ -26,9 +26,11 @@ resource "digitalocean_loadbalancer" "public" {
     certificate_name = digitalocean_certificate.wildcard.name
   }
   #There should be one "traefik" instances on each droplet tagges as "client"
+  redirect_http_to_https = true
   healthcheck {
-    protocol = "tcp"
-    port = 80
+    protocol = "http"
+    path = "/ping"
+    port = 8080
   }
   droplet_tag = "client"
   lifecycle {

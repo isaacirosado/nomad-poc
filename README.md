@@ -24,12 +24,8 @@ We are provisioning/configuring most everything with Hashicorp's Terraform:
   apt-get update && apt-get install terraform
   ```
 
-- Install "PDSH" so you can run commands on multiple hosts at the same time
-  ```
-  apt-get install -y pdsh
-  ```
-
-- Other tools
+- Other tools installed locally
+  - "pdsh" to run commands in multiple server concurrently
   - "nomad" (as a client to manage deployments), make sure to use the same version as the cluster
   - "dig" for DNS queries
   The deployment will execute "local-prep.sh", that script will install these tools and set up ENV variables
@@ -47,14 +43,6 @@ We are provisioning/configuring most everything with Hashicorp's Terraform:
   mkdir -p $GOPATH/src/github.com/hashicorp; cd $GOPATH/src/github.com/hashicorp
   git clone https://github.com/hashicorp/nomad-driver-lxc.git
   cd $GOPATH/src/github.com/hashicorp/nomad-driver-lxc
-  make build
-  ```
-- Compile the containerd driver
-  ```
-  mkdir -p $GOPATH/src/github.com/Roblox
-  cd $GOPATH/src/github.com/Roblox
-  git clone https://github.com/Roblox/nomad-driver-containerd.git
-  cd nomad-driver-containerd
   make build
   ```
 
@@ -84,5 +72,5 @@ nomad status
     ```
   - From day-to-day, destroy the cluster to save some money:
   ```
-terraform destroy --auto-approve -target="module.containerd-deployment" -target="module.lxc-deployment" && terraform destroy -target="module.cluster-client" -target="module.cluster-server" --auto-approve
+terraform destroy --auto-approve -target="module.docker-deployment" -target="module.lxc-deployment" && terraform destroy -target="module.cluster-client" -target="module.cluster-server" --auto-approve
   ```
