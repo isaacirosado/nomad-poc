@@ -47,7 +47,6 @@ We are provisioning/configuring most everything with Hashicorp's Terraform:
   ```
 
 - Deploy
-  - Baseline
   ```
 terraform init
   ```
@@ -63,14 +62,14 @@ terraform apply -target="null_resource.local-prep" --auto-approve && ./local-pre
   ```
 terraform apply --auto-approve
   ```
-    - Check that everything is working nice using PDSH to run commands in groups/parallel
+  Check that everything is working nice using PDSH to run commands in groups/parallel
   ```
 pdsh -g cluster systemctl status consul
 pdsh -g cluster systemctl status nomad
 pdsh -g client consul members
 nomad status
   ```
-  - From day-to-day, destroy the cluster to save some money:
+  From day-to-day, destroy the cluster to save some money:
   ```
 terraform destroy --auto-approve -target="module.docker-deployment" -target="module.lxc-deployment" && terraform destroy -target="module.cluster-client" -target="module.cluster-server" --auto-approve
   ```
